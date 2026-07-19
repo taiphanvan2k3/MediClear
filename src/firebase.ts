@@ -2,31 +2,21 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Placeholder configuration.
-// Since automatic provisioning failed, the user will need to replace this
-// with their actual Firebase configuration.
+// Read configuration from environment variables, fallback to current defaults
+const env = (import.meta as any).env || {};
+
 const firebaseConfig = {
-  apiKey: "REPLACE_ME",
-  authDomain: "REPLACE_ME",
-  projectId: "REPLACE_ME",
-  storageBucket: "REPLACE_ME",
-  messagingSenderId: "REPLACE_ME",
-  appId: "REPLACE_ME"
+  apiKey: env.VITE_FIREBASE_API_KEY || "AIzaSyANIR8elZmlA3YPyKH3EXbVUeFusfjA0Jo",
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || "mediaclear-4c164.firebaseapp.com",
+  projectId: env.VITE_FIREBASE_PROJECT_ID || "mediaclear-4c164",
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || "mediaclear-4c164.firebasestorage.app",
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || "691846643593",
+  appId: env.VITE_FIREBASE_APP_ID || "1:691846643593:web:a90e48a45c9c5231f3ab58",
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || "G-4MV9GF2674"
 };
 
-let app;
-let auth;
-let db;
-
-try {
-  // Only initialize if the user has replaced the config
-  if (firebaseConfig.apiKey !== "REPLACE_ME") {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-  }
-} catch (error) {
-  console.error("Failed to initialize Firebase", error);
-}
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 export { app, auth, db };
