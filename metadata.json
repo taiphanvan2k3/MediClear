@@ -1,0 +1,6 @@
+{
+  "name": "MediClear - Trợ lý Y tế",
+  "description": "Medical assistant AI for elderly Vietnamese users.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
