@@ -173,6 +173,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         </div>
 
         <div className="space-y-2.5 text-xs text-slate-700 font-medium">
+          {!user && (
+            <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-2.5 text-xs text-amber-900 font-medium flex items-center gap-2">
+              <span>💡 Dữ liệu đang lưu trên thiết bị. Đăng nhập ở khung tài khoản trên để đồng bộ Cloud.</span>
+            </div>
+          )}
+
           {/* Pronouns & Nickname */}
           <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
             <span className="text-slate-500 font-bold">Xưng hô AI:</span>

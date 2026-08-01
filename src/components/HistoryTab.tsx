@@ -14,11 +14,18 @@ import {
   AlertCircle, 
   Info, 
   Trash2, 
-  Plus 
+  Plus,
+  LogIn,
+  ShieldCheck,
+  Lock,
+  Cloud
 } from 'lucide-react';
+import { User } from 'firebase/auth';
 import { HistoryRecord } from '../types';
 
 interface HistoryTabProps {
+  user: User | null;
+  onLogin: () => void;
   historyRecords: HistoryRecord[];
   onDeleteRecord: (id: string) => void;
   onOpenLightbox: (url: string, title: string) => void;
@@ -29,6 +36,8 @@ interface HistoryTabProps {
 }
 
 export const HistoryTab: React.FC<HistoryTabProps> = ({
+  user,
+  onLogin,
   historyRecords,
   onDeleteRecord,
   onOpenLightbox,
@@ -42,6 +51,52 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const titleClass = isLargeText ? "text-2xl font-bold tracking-tight" : "text-xl font-bold tracking-tight";
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
   const bodyClass = isLargeText ? "text-base leading-relaxed" : "text-sm leading-relaxed";
+
+  // Unauthenticated screen state
+  if (!user) {
+    return (
+      <div className="space-y-4 px-4 py-6 animate-in fade-in duration-300 max-w-md mx-auto">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+          <Clock className="w-6 h-6 text-emerald-600" />
+          <h2 className={`${titleClass} text-slate-800`}>Lịch sử khám & Đơn thuốc</h2>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 text-center space-y-4 shadow-soft">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-base font-extrabold text-slate-900">
+              Yêu cầu đăng nhập tài khoản
+            </h3>
+            <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-xs mx-auto">
+              Để bảo mật thông tin y tế cá nhân và lưu trữ nhật ký khám bệnh, sổ đơn thuốc lâu dài trên Cloud, {userTitle} vui lòng đăng nhập tài khoản Google.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-left space-y-2">
+            <div className="flex items-start gap-2 text-xs font-semibold text-slate-700">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>Bảo mật 100% dữ liệu y tế riêng tư của {userTitle}</span>
+            </div>
+            <div className="flex items-start gap-2 text-xs font-semibold text-slate-700">
+              <Cloud className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+              <span>Đồng bộ và xem lại hồ sơ mọi lúc trên thiết bị khác</span>
+            </div>
+          </div>
+
+          <button
+            onClick={onLogin}
+            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3.5 px-4 font-bold text-sm transition-all shadow-md active:scale-98"
+          >
+            <LogIn className="w-4 h-4" />
+            Đăng nhập bằng Google ngay
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Detailed view of a single selected record
   if (selectedRecord) {

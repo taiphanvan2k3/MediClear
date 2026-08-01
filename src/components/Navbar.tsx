@@ -1,77 +1,91 @@
 import React from 'react';
-import { Stethoscope, LogIn, LogOut, Type, User as UserIcon } from 'lucide-react';
+import { Stethoscope, LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import { User } from 'firebase/auth';
+import { TabType } from '../types';
 
 interface NavbarProps {
   user: User | null;
   userTitle: string;
-  isLargeText: boolean;
-  onToggleLargeText: () => void;
+  isLargeText?: boolean;
+  onToggleLargeText?: () => void;
   onLogin: () => void;
   onLogout: () => void;
+  activeTab?: TabType;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   user,
   userTitle,
-  isLargeText,
-  onToggleLargeText,
   onLogin,
-  onLogout
+  onLogout,
+  activeTab
 }) => {
+  const showNavbarLoginButton = !user && activeTab !== 'PROFILE' && activeTab !== 'HISTORY';
+
   return (
-    <header className="bg-emerald-700 text-white shadow-md sticky top-0 z-30">
-      <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
+      <div className="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between">
+        {/* Brand & Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-white/15 rounded-xl backdrop-blur-xs flex items-center justify-center border border-white/20">
-            <Stethoscope className="w-6 h-6 text-emerald-100" />
+          <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-xs flex items-center justify-center shrink-0">
+            <Stethoscope className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-1.5">
+            <h1 className="font-extrabold text-base leading-tight text-slate-900 tracking-tight">
               Trợ lý Y tế AI
             </h1>
-            <p className="text-[11px] font-medium text-emerald-100/90 leading-none">
+            <p className="text-[11px] font-semibold text-emerald-700 leading-none">
               Dành cho {userTitle} & Gia đình
             </p>
           </div>
         </div>
 
+        {/* User Account / Authentication Area */}
         <div className="flex items-center gap-2">
-          {/* Quick Font Size Toggle Button */}
-          <button
-            onClick={onToggleLargeText}
-            className={`p-2 rounded-xl transition-all border text-xs font-bold flex items-center gap-1 ${
-              isLargeText
-                ? 'bg-emerald-800 text-emerald-100 border-emerald-600'
-                : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
-            }`}
-            title={isLargeText ? "Đang bật Chữ to" : "Bật Chữ to dễ đọc"}
-          >
-            <Type className="w-4 h-4" />
-            <span className="hidden sm:inline">{isLargeText ? "Chữ to" : "Chữ vừa"}</span>
-          </button>
-
-          {/* Login / User Status Button */}
           {user ? (
-            <button
-              onClick={onLogout}
-              className="px-2.5 py-1.5 bg-emerald-800/80 hover:bg-emerald-900 border border-emerald-600 rounded-xl text-xs font-bold text-emerald-100 flex items-center gap-1.5 transition-all shadow-xs"
-              title="Đăng xuất"
-            >
-              <LogOut className="w-3.5 h-3.5 text-emerald-200" />
-              <span className="max-w-[70px] truncate">{user.displayName || "Thành viên"}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* User Profile Avatar & Name Chip */}
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-full pl-1.5 pr-3 py-1 shadow-2xs">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'User Avatar'}
+                    referrerPolicy="no-referrer"
+                    className="w-6 h-6 rounded-full object-cover border border-emerald-500 shrink-0"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center justify-center text-xs font-bold shrink-0">
+                    {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
+                  </div>
+                )}
+                <span className="text-xs font-bold text-slate-800 max-w-[90px] truncate leading-none">
+                  {user.displayName || "Thành viên"}
+                </span>
+              </div>
+
+              {/* Explicit Logout Icon Button */}
+              <button
+                onClick={onLogout}
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors active:scale-95"
+                title="Đăng xuất tài khoản"
+              >
+                <LogOut className="w-4.5 h-4.5" />
+              </button>
+            </div>
           ) : (
-            <button
-              onClick={onLogin}
-              className="px-3 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
-            >
-              <LogIn className="w-3.5 h-3.5 text-emerald-700" />
-              Đăng nhập
-            </button>
+            showNavbarLoginButton && (
+              <button
+                onClick={onLogin}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+              >
+                <LogIn className="w-3.5 h-3.5 text-white" />
+                <span>Đăng nhập</span>
+              </button>
+            )
           )}
         </div>
       </div>
     </header>
   );
 };
+

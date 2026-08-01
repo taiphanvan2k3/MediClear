@@ -402,6 +402,7 @@ export default function App() {
         onToggleLargeText={toggleLargeText}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        activeTab={activeTab}
       />
 
       {/* Main Tab Screen Switcher */}
@@ -439,6 +440,8 @@ export default function App() {
 
         {activeTab === 'HISTORY' && (
           <HistoryTab
+            user={user}
+            onLogin={handleLogin}
             historyRecords={historyRecords}
             onDeleteRecord={handleDeleteRecord}
             onOpenLightbox={(url, title) => setLightboxImage({ url, title })}
