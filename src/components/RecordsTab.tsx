@@ -58,7 +58,9 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
   setAlertMessage
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
+  const addMoreCameraInputRef = useRef<HTMLInputElement>(null);
 
   const titleClass = isLargeText ? "text-2xl font-bold tracking-tight" : "text-xl font-bold tracking-tight";
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
@@ -93,13 +95,22 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
   if (scanState === 'IDLE') {
     return (
       <div className="flex flex-col items-center justify-center py-5 px-4 space-y-5 animate-in fade-in duration-300 max-w-sm mx-auto">
-        {/* Main Multiple File Input */}
+        {/* Hidden Camera Input (Trực tiếp mở Máy ảnh) */}
+        <input 
+          type="file" 
+          ref={cameraInputRef}
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleMainFileInputChange}
+        />
+
+        {/* Hidden Multiple File Input (Mở Album / Thư viện ảnh) */}
         <input 
           type="file" 
           ref={fileInputRef}
           accept="image/*"
           multiple
-          capture="environment"
           className="hidden"
           onChange={handleMainFileInputChange}
         />
@@ -114,14 +125,11 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
           </p>
         </div>
 
-        {/* Clean Upload Box */}
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full aspect-square max-w-xs rounded-3xl border-2 border-dashed border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50 transition-all flex flex-col items-center justify-center p-6 space-y-3 shadow-soft text-center group cursor-pointer relative overflow-hidden"
-        >
+        {/* Clean Upload Box với 2 tùy chọn rõ ràng: Chụp ảnh trực tiếp OR Chọn Album */}
+        <div className="w-full max-w-xs rounded-3xl border-2 border-dashed border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50 transition-all flex flex-col items-center justify-center p-5 space-y-3.5 shadow-soft text-center group relative overflow-hidden">
           {/* Camera Circle */}
-          <div className="p-4 bg-emerald-100 group-hover:bg-emerald-200 rounded-full text-emerald-700 transition-colors shadow-sm">
-            <Camera className="w-12 h-12 text-emerald-700" />
+          <div className="p-3.5 bg-emerald-100 group-hover:bg-emerald-200 rounded-full text-emerald-700 transition-colors shadow-sm">
+            <Camera className="w-10 h-10 text-emerald-700" />
           </div>
 
           <div className="space-y-1 px-2">
@@ -129,14 +137,30 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
               Chụp hoặc Tải ảnh lên
             </span>
             <p className="text-xs text-emerald-800/90 font-medium">
-              Cho phép chọn 1 hoặc nhiều ảnh cùng lúc (đơn thuốc nhiều trang)
+              Chụp ảnh phiếu khám mới hoặc chọn nhiều trang đơn thuốc từ album
             </p>
           </div>
 
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-900 bg-white border border-emerald-300 px-3.5 py-1.5 rounded-full shadow-xs">
-            <Upload className="w-3.5 h-3.5 text-emerald-600" />
-            Chọn từ thiết bị / Máy ảnh
-          </span>
+          {/* Dual Action Buttons */}
+          <div className="grid grid-cols-2 gap-2 w-full pt-1">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 py-2.5 px-2.5 rounded-xl shadow-xs transition-all"
+            >
+              <Camera className="w-4 h-4 text-white shrink-0" />
+              <span>Chụp ảnh</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800 bg-white border border-emerald-300 hover:bg-emerald-50 active:scale-95 py-2.5 px-2.5 rounded-xl shadow-xs transition-all"
+            >
+              <Upload className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Album ảnh</span>
+            </button>
+          </div>
         </div>
 
         {/* Medical Tip Block */}
@@ -200,13 +224,20 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
   // RESULTS Screen
   return (
     <div className="space-y-5 px-4 py-4 animate-in slide-in-from-bottom-4 duration-300 max-w-md mx-auto">
-      {/* Hidden File Input to add more photos to current batch */}
+      {/* Hidden File Inputs to add more photos to current batch */}
+      <input 
+        type="file" 
+        ref={addMoreCameraInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleAddMorePhotosInputChange}
+      />
       <input 
         type="file" 
         ref={addMoreFileInputRef}
         accept="image/*"
         multiple
-        capture="environment"
         className="hidden"
         onChange={handleAddMorePhotosInputChange}
       />
@@ -229,12 +260,22 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
             Ảnh thực tế đã tải lên ({selectedImages.length} ảnh):
           </span>
 
-          <button 
-            onClick={() => addMoreFileInputRef.current?.click()}
-            className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" /> Thêm ảnh khác
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button 
+              onClick={() => addMoreCameraInputRef.current?.click()}
+              className="text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg flex items-center gap-1 transition-all"
+              title="Chụp ảnh mới"
+            >
+              <Camera className="w-3.5 h-3.5 text-emerald-600" /> Chụp
+            </button>
+            <button 
+              onClick={() => addMoreFileInputRef.current?.click()}
+              className="text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg flex items-center gap-1 transition-all"
+              title="Chọn từ Album"
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-600" /> Album
+            </button>
+          </div>
         </div>
 
         {/* Main Active Image View */}
