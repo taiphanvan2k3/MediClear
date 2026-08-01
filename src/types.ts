@@ -101,3 +101,43 @@ export const DEFAULT_HISTORY_RECORDS: HistoryRecord[] = [
     note: 'Tái khám xét nghiệm lại sau 1 tháng'
   }
 ];
+
+export interface MedSearchHistoryItem {
+  id: string;
+  query: string;
+  name: string;
+  dosage: string[] | string;
+  purpose: string[] | string;
+  foodAdvice: string[] | string;
+  summary?: string;
+  sources?: { title: string; uri: string }[];
+  date: string;
+  timestamp: number;
+}
+
+export const DEFAULT_MED_SEARCH_HISTORY: MedSearchHistoryItem[] = [
+  {
+    id: 'med-hist-1',
+    query: 'Amlodipin 5mg',
+    name: 'Amlodipin 5mg - Thuốc điều trị huyết áp',
+    dosage: [
+      'Uống 1 viên vào lúc 8:00 sáng hàng ngày (Sau ăn)',
+      'Uống cố định vào một thời điểm trong ngày'
+    ],
+    purpose: [
+      'Điều trị tăng huyết áp (ổn định chỉ số huyết áp)',
+      'Phòng ngừa các cơn đau thắt ngực mạn tính'
+    ],
+    foodAdvice: [
+      'Uống nguyên viên với một cốc nước đầy, không nhai nát',
+      'Tuyệt đối không uống cùng rượu bia hoặc nước ép bưởi'
+    ],
+    summary: 'Thuốc điều trị tăng huyết áp, nên uống 1 viên buổi sáng.',
+    sources: [
+      { title: 'vinmec.com', uri: 'https://vinmec.com' },
+      { title: 'medlatec.vn', uri: 'https://medlatec.vn' }
+    ],
+    date: 'Hôm nay, 08:30',
+    timestamp: Date.now()
+  }
+];

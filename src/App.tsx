@@ -14,7 +14,9 @@ import {
   UserProfile, 
   DEFAULT_PROFILE, 
   HistoryRecord, 
-  DEFAULT_HISTORY_RECORDS 
+  DEFAULT_HISTORY_RECORDS,
+  MedSearchHistoryItem,
+  DEFAULT_MED_SEARCH_HISTORY
 } from './types';
 
 import { Navbar } from './components/Navbar';
@@ -69,7 +71,7 @@ export default function App() {
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
-  // History Records List
+  // History Records List (Khám bệnh / Đơn thuốc)
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>(() => {
     try {
       const saved = localStorage.getItem('mediClear_historyRecords');
@@ -80,9 +82,24 @@ export default function App() {
     return DEFAULT_HISTORY_RECORDS;
   });
 
+  // Medicine Search History List (Tra cứu thuốc)
+  const [medSearchHistory, setMedSearchHistory] = useState<MedSearchHistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('mediClear_medSearchHistory');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Lỗi đọc medSearchHistory từ localStorage:", e);
+    }
+    return DEFAULT_MED_SEARCH_HISTORY;
+  });
+
   useEffect(() => {
     localStorage.setItem('mediClear_historyRecords', JSON.stringify(historyRecords));
   }, [historyRecords]);
+
+  useEffect(() => {
+    localStorage.setItem('mediClear_medSearchHistory', JSON.stringify(medSearchHistory));
+  }, [medSearchHistory]);
 
   const toggleLargeText = () => {
     setIsLargeText(prev => {
@@ -289,6 +306,45 @@ export default function App() {
     });
   };
 
+  const handleSaveMedSearchHistory = (medData: {
+    query: string;
+    name: string;
+    dosage: string[] | string;
+    purpose: string[] | string;
+    foodAdvice: string[] | string;
+    summary?: string;
+    sources?: { title: string; uri: string }[];
+  }) => {
+    const newItem: MedSearchHistoryItem = {
+      id: `med-hist-${Date.now()}`,
+      query: medData.query || medData.name,
+      name: medData.name,
+      dosage: medData.dosage,
+      purpose: medData.purpose,
+      foodAdvice: medData.foodAdvice,
+      summary: medData.summary,
+      sources: medData.sources,
+      date: 'Hôm nay, ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: Date.now()
+    };
+
+    setMedSearchHistory(prev => {
+      const filtered = prev.filter(i => i.name !== newItem.name);
+      return [newItem, ...filtered];
+    });
+  };
+
+  const handleDeleteMedSearchItem = (id: string) => {
+    setConfirmDialog({
+      message: `${uTitle} có chắc muốn xóa lịch sử tra cứu thuốc này không?`,
+      onConfirm: () => {
+        setMedSearchHistory(prev => prev.filter(item => item.id !== id));
+        setConfirmDialog(null);
+        setAlertMessage("Đã xóa mục khỏi lịch sử tra cứu thuốc.");
+      }
+    });
+  };
+
   const handleLogin = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
@@ -433,6 +489,7 @@ export default function App() {
             aiTitle={aiTitle}
             isLargeText={isLargeText}
             onSetCalendarReminder={handleSetCalendarReminder}
+            onSaveMedSearchHistory={handleSaveMedSearchHistory}
           />
         )}
 
@@ -441,12 +498,15 @@ export default function App() {
             user={user}
             onLogin={handleLogin}
             historyRecords={historyRecords}
+            medSearchHistory={medSearchHistory}
             onDeleteRecord={handleDeleteRecord}
+            onDeleteMedSearchItem={handleDeleteMedSearchItem}
             onOpenLightbox={(url, title) => setLightboxImage({ url, title })}
             userTitle={uTitle}
             aiTitle={aiTitle}
             isLargeText={isLargeText}
             onAddPhotosToRecord={handleAddPhotosToRecord}
+            onSetCalendarReminder={handleSetCalendarReminder}
           />
         )}
 
