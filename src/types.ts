@@ -14,13 +14,13 @@ export interface UserProfile {
 
 export const DEFAULT_PROFILE: UserProfile = {
   nickname: '',
-  age: '68',
-  birthYear: '1958',
+  age: '',
+  birthYear: '',
   userTitle: 'Bác',
   aiTitle: 'Cháu',
-  conditions: ['❤️ Cao huyết áp', '🥣 Đau dạ dày'],
-  emergencyName: 'Con gái Mai',
-  emergencyPhone: '0987654321'
+  conditions: [],
+  emergencyName: '',
+  emergencyPhone: ''
 };
 
 export const USER_TITLE_OPTIONS = ['Bác', 'Ông', 'Bà', 'Chú', 'Cô', 'Anh/Chị', 'Tôi'];

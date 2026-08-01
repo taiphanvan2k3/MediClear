@@ -180,7 +180,6 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   type="file" 
                   accept="image/*"
                   multiple
-                  capture="environment"
                   className="hidden"
                   onChange={(e) => {
                     if (e.target.files) {

@@ -15,8 +15,10 @@ import {
   X,
   ChevronRight,
   ShieldAlert,
-  Calendar,
-  Sparkles
+  Sparkles,
+  Lock,
+  ShieldCheck,
+  Cloud
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { 
@@ -71,6 +73,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
   const descClass = isLargeText ? "text-sm" : "text-xs";
 
+  const isProfileEmpty = !userProfile.age && (!userProfile.conditions || userProfile.conditions.length === 0) && !userProfile.emergencyName;
+
   const handleSaveAndCloseModal = () => {
     onSaveProfile();
     setTimeout(() => {
@@ -78,9 +82,101 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     }, 600);
   };
 
+  const handleEmergencyCall = () => {
+    if (userProfile.emergencyPhone) {
+      window.location.href = `tel:${userProfile.emergencyPhone}`;
+    } else {
+      setAlertMessage(`Vui lòng cập nhật số điện thoại người thân trong mục Cài đặt trước khi thực hiện cuộc gọi SOS!`);
+      setIsSettingsModalOpen(true);
+    }
+  };
+
+  // Trạng thái khi CHƯA ĐĂNG NHẬP: Hiển thị màn hình Yêu cầu đăng nhập tập trung, không hiển thị nhiều ô trống thừa
+  if (!user) {
+    return (
+      <div className="space-y-5 px-4 py-4 animate-in fade-in duration-300 max-w-md mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+          <UserIcon className="w-6 h-6 text-emerald-600" />
+          <h2 className={`${titleClass} text-slate-800`}>Hồ sơ cá nhân</h2>
+        </div>
+
+        {/* Khung Yêu cầu Đăng nhập */}
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 text-center space-y-4 shadow-soft">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 border border-emerald-200/80 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+            <Lock className="w-8 h-8 text-emerald-600" />
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-extrabold text-slate-900">
+              Yêu cầu đăng nhập tài khoản
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed max-w-xs mx-auto">
+              Để bảo mật hồ sơ sức khỏe cá nhân, tùy chỉnh xưng hô Trợ lý AI và tự động đồng bộ trên Google Cloud, {uTitle} vui lòng đăng nhập tài khoản Google.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-left space-y-2">
+            <div className="flex items-start gap-2.5 text-xs font-semibold text-slate-700">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>Bảo mật 100% dữ liệu sức khỏe & người thân khẩn cấp</span>
+            </div>
+            <div className="flex items-start gap-2.5 text-xs font-semibold text-slate-700">
+              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>Tùy chỉnh xưng hô Trợ lý AI phù hợp lứa tuổi ({uTitle} ↔ {aiTitle})</span>
+            </div>
+            <div className="flex items-start gap-2.5 text-xs font-semibold text-slate-700">
+              <Cloud className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+              <span>Tự động đồng bộ lịch nhắc uống thuốc trên Google Calendar</span>
+            </div>
+          </div>
+
+          <button
+            onClick={onLogin}
+            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-3.5 px-4 font-bold text-sm transition-all shadow-xs active:scale-98"
+          >
+            <LogIn className="w-5 h-5 text-white" />
+            Đăng nhập ngay bằng Google
+          </button>
+        </div>
+
+        {/* Cài đặt Nhanh Cỡ Chữ (Luôn hiển thị kể cả khi chưa đăng nhập) */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-soft">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-sky-100 text-sky-700 rounded-lg">
+                <Type className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="font-bold text-slate-900 text-sm block">
+                  Cỡ chữ to dễ đọc
+                </span>
+                <span className="text-xs text-slate-500 font-medium">
+                  Tăng kích thước chữ cho người cao tuổi
+                </span>
+              </div>
+            </div>
+
+            <button 
+              onClick={onToggleLargeText}
+              className={`w-12 h-7 rounded-full transition-colors relative p-1 shrink-0 ${
+                isLargeText ? 'bg-emerald-600' : 'bg-slate-300'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                isLargeText ? 'translate-x-5' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Trạng thái khi ĐÃ ĐĂNG NHẬP: Hiển thị đầy đủ Hồ sơ & Cài đặt
   return (
     <div className="space-y-5 px-4 py-4 animate-in fade-in duration-300 max-w-md mx-auto">
-      {/* Top Header */}
+      {/* 1. Header Trang Hồ Sơ */}
       <div className="flex items-center justify-between pb-2 border-b border-slate-200">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
@@ -92,7 +188,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </p>
         </div>
 
-        {/* Setting Modal Trigger */}
         <button
           onClick={() => setIsSettingsModalOpen(true)}
           className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl font-bold text-xs transition-all shadow-xs active:scale-95 shrink-0"
@@ -102,65 +197,48 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         </button>
       </div>
 
-      {/* Account Status Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-soft space-y-3">
+      {/* 2. Thẻ Trạng thái Tài khoản & Đồng bộ */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-soft space-y-3">
         <div className="flex items-center gap-3">
           {user?.photoURL ? (
-            <img src={user.photoURL} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-emerald-500" />
+            <img src={user.photoURL} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-emerald-500 object-cover shrink-0" />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg border border-emerald-200 shrink-0">
-              <UserIcon className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-lg border border-emerald-200 shrink-0">
+              <UserIcon className="w-6 h-6 text-emerald-600" />
             </div>
           )}
           <div className="space-y-1 min-w-0 flex-1">
             <h3 className={`${titleClass} text-slate-900 font-bold truncate`}>
-              {user ? (user.displayName || userDisplayName) : "Chưa đăng nhập"}
+              {user.displayName || userDisplayName}
             </h3>
             <p className={`${descClass} text-slate-500 font-medium truncate`}>
-              {user?.email || "Đăng nhập để đồng bộ thông tin & lịch nhắc"}
+              {user.email || 'Google Account'}
             </p>
-            {user ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                <Check className="w-3 h-3 text-emerald-600" />
-                Đã đồng bộ Google Cloud
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                💡 Lưu trên thiết bị (Offline)
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              <Check className="w-3 h-3 text-emerald-600" />
+              Đã đồng bộ an toàn với Google Cloud
+            </span>
           </div>
         </div>
 
-        {/* Auth Buttons */}
-        {!user ? (
-          <button 
-            onClick={onLogin}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 px-4 font-bold text-xs transition-all shadow-xs active:scale-98"
-          >
-            <LogIn className="w-4 h-4" />
-            Đăng nhập bằng Google
-          </button>
-        ) : (
-          <button 
-            onClick={onLogout}
-            className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl py-2 px-4 font-bold text-xs transition-all"
-          >
-            <LogOut className="w-4 h-4 text-slate-500" />
-            Đăng xuất tài khoản
-          </button>
-        )}
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl py-2 px-4 font-bold text-xs transition-all"
+        >
+          <LogOut className="w-4 h-4 text-slate-500" />
+          Đăng xuất tài khoản
+        </button>
       </div>
 
-      {/* HEALTH & CONVERSATION SUMMARY CARD */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-soft space-y-3.5">
+      {/* 3. Thẻ Thông tin Sức khỏe & Theo dõi */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-soft space-y-3.5">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
               <HeartPulse className="w-4 h-4" />
             </div>
             <h3 className={`${subTitleClass} text-slate-900 font-bold`}>
-              Thông tin theo dõi
+              Thông tin sức khỏe & Xưng hô
             </h3>
           </div>
 
@@ -172,18 +250,25 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </button>
         </div>
 
-        <div className="space-y-2.5 text-xs text-slate-700 font-medium">
-          {!user && (
-            <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-2.5 text-xs text-amber-900 font-medium flex items-center gap-2">
-              <span>💡 Dữ liệu đang lưu trên thiết bị. Đăng nhập ở khung tài khoản trên để đồng bộ Cloud.</span>
+        {/* Guidance Banner if profile is empty */}
+        {isProfileEmpty && (
+          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-xs text-emerald-900 flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-slate-800">Chưa có thông tin sức khỏe</p>
+              <p className="text-slate-600 mt-0.5 leading-relaxed">
+                {uTitle} hãy bấm nút <b>"Chỉnh sửa"</b> phía trên để bổ sung độ tuổi, bệnh nền và người thân khẩn cấp giúp Trợ lý AI tư vấn chính xác hơn!
+              </p>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Pronouns & Nickname */}
+        <div className="space-y-2.5 text-xs text-slate-700 font-medium">
+          {/* Pronouns */}
           <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-            <span className="text-slate-500 font-bold">Xưng hô AI:</span>
+            <span className="text-slate-500 font-bold">Cách xưng hô AI:</span>
             <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-              {uTitle} ↔ {aiTitle} ({userDisplayName})
+              {uTitle} ↔ {aiTitle} {userProfile.nickname ? `(${userProfile.nickname})` : ''}
             </span>
           </div>
 
@@ -191,7 +276,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
             <span className="text-slate-500 font-bold">Độ tuổi:</span>
             <span className="font-bold text-slate-800">
-              {userProfile.age ? `${userProfile.age} tuổi` : 'Chưa cập nhật'} {userProfile.birthYear ? `(Sinh năm ${userProfile.birthYear})` : ''}
+              {userProfile.age ? `${userProfile.age} tuổi` : <span className="text-slate-400 italic">Chưa cập nhật</span>} {userProfile.birthYear ? `(Sinh năm ${userProfile.birthYear})` : ''}
             </span>
           </div>
 
@@ -218,16 +303,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               Người thân SOS:
             </span>
             <span className="font-bold text-rose-950">
-              {userProfile.emergencyName || 'Chưa cài đặt'} ({userProfile.emergencyPhone || '---'})
+              {userProfile.emergencyName ? (
+                `${userProfile.emergencyName} (${userProfile.emergencyPhone || 'Chưa có SĐT'})`
+              ) : (
+                <span className="text-rose-400 italic font-normal">Chưa cài đặt</span>
+              )}
             </span>
           </div>
         </div>
       </div>
 
-      {/* QUICK SETTINGS CARD */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-soft space-y-3">
+      {/* 4. Tùy chỉnh Giao diện & Cài đặt */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-soft space-y-3">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          TÙY CHỈNH GIAO DIỆN & CÀI ĐẶT:
+          TÙY CHỈNH GIAO DIỆN & CÀI ĐẶT
         </h3>
 
         {/* 1. Open Setting Modal Button Row */}
@@ -280,16 +369,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         </div>
       </div>
 
-      {/* Emergency SOS Call Button */}
+      {/* 5. Nút Gọi Khẩn Cấp SOS */}
       <button 
-        onClick={() => setAlertMessage(`${aiTitle} đang thực hiện cuộc gọi khẩn cấp đến người thân của ${uTitle}: ${userProfile.emergencyName} (${userProfile.emergencyPhone})!`)}
-        className="w-full flex items-center justify-center gap-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl p-4 text-base font-bold active:scale-98 transition-all shadow-sm"
+        onClick={handleEmergencyCall}
+        className="w-full flex items-center justify-center gap-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl p-4 text-base font-bold active:scale-98 transition-all shadow-md"
       >
         <Phone className="w-5 h-5" />
-        ☎️ GỌI NGƯỜI THÂN KHẨN CẤP ({userProfile.emergencyName || 'SOS'})
+        {userProfile.emergencyPhone ? (
+          `GỌI NGƯỜI THÂN KHẨN CẤP (${userProfile.emergencyName || 'SOS'})`
+        ) : (
+          `CÀI ĐẶT SỐ NGƯỜI THÂN KHẨN CẤP (SOS)`
+        )}
       </button>
 
-      {/* SETTINGS MODAL / SLIDE DIALOG */}
+      {/* Modal Cài đặt Slide */}
       {isSettingsModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
@@ -308,9 +401,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               </button>
             </div>
 
-            {/* Modal Content Form */}
+            {/* Form cài đặt */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-slate-800">
-              {/* 1. Pronouns Selection */}
+              {/* Xưng hô */}
               <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                   1. XƯNG HÔ NÓI CHUYỆN VỚI AI:
@@ -360,7 +453,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 </div>
               </div>
 
-              {/* 2. Nickname */}
+              {/* Nickname */}
               <div className="space-y-1.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                   2. TÊN HOẶC BIỆT DANH THÂN MẬT:
@@ -374,7 +467,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 />
               </div>
 
-              {/* 3. Age & Birth Year */}
+              {/* Age & Birth Year */}
               <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
@@ -384,7 +477,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                     type="number"
                     value={userProfile.age}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, age: e.target.value }))}
-                    placeholder="68"
+                    placeholder="Ví dụ: 68"
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -396,13 +489,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                     type="number"
                     value={userProfile.birthYear}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, birthYear: e.target.value }))}
-                    placeholder="1958"
+                    placeholder="Ví dụ: 1958"
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
-              {/* 4. Health Conditions */}
+              {/* Health Conditions */}
               <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                   4. BỆNH NỀN / TIỀN SỬ SỨC KHỎE THEO DÕI:
@@ -428,7 +521,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                   })}
                 </div>
 
-                {/* Custom Condition Add */}
+                {/* Custom Condition */}
                 <div className="flex gap-2 pt-1">
                   <input 
                     type="text"
@@ -448,7 +541,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 </div>
               </div>
 
-              {/* 5. Emergency Contact */}
+              {/* Emergency Contact */}
               <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                   5. NGƯỜI THÂN KHẨN CẤP (NÚT SOS):
@@ -500,4 +593,3 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     </div>
   );
 };
-

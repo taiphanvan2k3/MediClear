@@ -301,7 +301,6 @@ export default function App() {
         cachedAccessToken = credential.accessToken;
       }
       setUser(result.user);
-      setAlertMessage(`Đăng nhập thành công! ${aiTitle} chào ${uTitle} ${result.user.displayName || ''}`);
     } catch (e) {
       console.error("Lỗi đăng nhập:", e);
       setAlertMessage("Đăng nhập bằng tài khoản Google không thành công. Vui lòng thử lại!");
@@ -314,7 +313,6 @@ export default function App() {
       await signOut(auth);
       setUser(null);
       cachedAccessToken = null;
-      setAlertMessage(`Đã đăng xuất tài khoản thành công.`);
     } catch (e) {
       console.error("Lỗi đăng xuất:", e);
     }
