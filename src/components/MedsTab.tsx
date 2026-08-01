@@ -6,9 +6,18 @@ interface MedsTabProps {
   aiTitle: string;
   isLargeText: boolean;
   onSetCalendarReminder: (medName: string, time: string) => void;
+  onSaveMedSearchHistory?: (medData: {
+    query: string;
+    name: string;
+    dosage: string[] | string;
+    purpose: string[] | string;
+    foodAdvice: string[] | string;
+    summary?: string;
+    sources?: { title: string; uri: string }[];
+  }) => void;
 }
 
-export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeText, onSetCalendarReminder }) => {
+export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeText, onSetCalendarReminder, onSaveMedSearchHistory }) => {
   const [medQuery, setMedQuery] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string>("image/jpeg");
@@ -17,9 +26,9 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
 
   const [selectedMed, setSelectedMed] = useState<{
     name: string;
-    dosage: string;
-    purpose: string;
-    foodAdvice: string;
+    dosage: string[] | string;
+    purpose: string[] | string;
+    foodAdvice: string[] | string;
     summary?: string;
     sources?: { title: string; uri: string }[];
   } | null>(null);
@@ -27,6 +36,35 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
   const titleClass = isLargeText ? "text-2xl font-bold tracking-tight" : "text-xl font-bold tracking-tight";
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
   const descClass = isLargeText ? "text-sm" : "text-xs";
+
+  const renderFormattedList = (items: string[] | string | undefined, bulletColor: string = "bg-emerald-500", textColor: string = "text-slate-800") => {
+    if (!items) return null;
+    let list: string[] = [];
+
+    if (Array.isArray(items)) {
+      list = items.map(s => String(s).replace(/\*\*/g, '').replace(/\*/g, '').replace(/^[•\-\s]+/g, '').trim()).filter(Boolean);
+    } else if (typeof items === 'string') {
+      list = items
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .split(/(?:\r?\n|•)/)
+        .map(s => s.replace(/^[•\-\s]+/g, '').trim())
+        .filter(Boolean);
+    }
+
+    if (list.length === 0) return null;
+
+    return (
+      <div className="space-y-1.5 mt-1.5">
+        {list.map((item, idx) => (
+          <div key={idx} className="bg-white/90 border border-slate-200/80 rounded-xl p-2.5 text-xs sm:text-sm font-semibold flex items-start gap-2.5 shadow-2xs">
+            <span className={`w-2 h-2 rounded-full ${bulletColor} shrink-0 mt-1.5`} />
+            <span className={`${textColor} leading-relaxed`}>{item}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,14 +112,23 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
 
       const data = await response.json();
 
-      setSelectedMed({
+      const medResult = {
         name: data.name || queryToSearch || "Thuốc từ hình ảnh",
         dosage: data.dosage || "Theo chỉ định của Bác sĩ.",
         purpose: data.purpose || "Hỗ trợ điều trị.",
         foodAdvice: data.foodAdvice || "Uống đúng giờ sau khi ăn no.",
         summary: data.summary,
         sources: data.sources || [],
-      });
+      };
+
+      setSelectedMed(medResult);
+
+      if (onSaveMedSearchHistory) {
+        onSaveMedSearchHistory({
+          query: queryToSearch.trim() || medResult.name,
+          ...medResult
+        });
+      }
     } catch (err: any) {
       console.error("Search med error:", err);
       setSearchError("Không thể tra cứu thông tin thuốc lúc này. Đang dùng dữ liệu tra cứu nhanh.");
@@ -287,57 +334,57 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
             </div>
           )}
 
-          <div className="space-y-2.5 text-slate-700 text-xs sm:text-sm leading-relaxed">
+          <div className="space-y-2.5 text-xs sm:text-sm leading-relaxed">
             {/* Liều dùng */}
-            <div className="flex items-start gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-              <div className="p-1 bg-white text-emerald-600 rounded-md shrink-0 border border-slate-200 mt-0.5">
+            <div className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="p-1.5 bg-emerald-100/70 text-emerald-700 rounded-lg shrink-0 border border-emerald-200/50 mt-0.5">
                 <Clock className="w-4 h-4" />
               </div>
-              <div>
-                <span className="font-bold text-slate-900 block">Liều dùng khuyến nghị:</span>
-                <span className="text-slate-700 font-medium">{selectedMed.dosage}</span>
+              <div className="flex-1 min-w-0">
+                <span className="font-bold text-slate-900 block mb-0.5">Liều dùng khuyến nghị:</span>
+                {renderFormattedList(selectedMed.dosage, "bg-emerald-500", "text-slate-700")}
               </div>
             </div>
 
             {/* Công dụng */}
-            <div className="flex items-start gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-              <div className="p-1 bg-white text-sky-600 rounded-md shrink-0 border border-slate-200 mt-0.5">
+            <div className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="p-1.5 bg-sky-100/70 text-sky-700 rounded-lg shrink-0 border border-sky-200/50 mt-0.5">
                 <Activity className="w-4 h-4" />
               </div>
-              <div>
-                <span className="font-bold text-slate-900 block">Tác dụng & Công dụng:</span>
-                <span className="text-slate-700 font-medium">{selectedMed.purpose}</span>
+              <div className="flex-1 min-w-0">
+                <span className="font-bold text-slate-900 block mb-0.5">Tác dụng & Công dụng:</span>
+                {renderFormattedList(selectedMed.purpose, "bg-sky-500", "text-slate-700")}
               </div>
             </div>
 
             {/* Cảnh báo lưu ý ăn uống */}
-            <div className="flex items-start gap-2.5 bg-rose-50/80 p-3 rounded-xl border border-rose-200/80 text-rose-950">
-              <div className="p-1 bg-rose-100 text-rose-700 rounded-md shrink-0 mt-0.5">
+            <div className="flex items-start gap-2.5 bg-rose-50/90 p-3.5 rounded-xl border border-rose-200/80 text-rose-950">
+              <div className="p-1.5 bg-rose-100 text-rose-700 rounded-lg shrink-0 mt-0.5 border border-rose-200">
                 <AlertTriangle className="w-4 h-4" />
               </div>
-              <div>
-                <span className="font-bold text-rose-900 block">Lưu ý quan trọng khi dùng:</span>
-                <span className="font-semibold text-rose-900">{selectedMed.foodAdvice}</span>
+              <div className="flex-1 min-w-0">
+                <span className="font-bold text-rose-950 block mb-0.5">Lưu ý quan trọng khi dùng:</span>
+                {renderFormattedList(selectedMed.foodAdvice, "bg-rose-500", "text-rose-900 font-semibold")}
               </div>
             </div>
 
             {/* Grounding Sources (Nguồn Google Search) */}
             {selectedMed.sources && selectedMed.sources.length > 0 && (
-              <div className="bg-slate-50/90 border border-slate-200/90 rounded-xl p-3 space-y-1.5">
+              <div className="bg-slate-50/90 border border-slate-200/90 rounded-xl p-3 space-y-2">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
                   Nguồn tra cứu uy tín từ Google Search:
                 </span>
-                <div className="space-y-1">
+                <div className="flex flex-wrap gap-1.5">
                   {selectedMed.sources.map((src, idx) => (
                     <a
                       key={idx}
                       href={src.uri}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 flex items-center gap-1.5 truncate underline decoration-emerald-300"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200/80 hover:border-emerald-400 hover:bg-emerald-50/50 rounded-full text-xs font-semibold text-emerald-800 hover:text-emerald-950 transition-all shadow-2xs"
                     >
                       <ExternalLink className="w-3 h-3 text-emerald-600 shrink-0" />
-                      <span className="truncate">{src.title}</span>
+                      <span className="truncate max-w-35 sm:max-w-45">{src.title}</span>
                     </a>
                   ))}
                 </div>
