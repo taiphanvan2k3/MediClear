@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Pill, Search, Clock, Calendar, Check, AlertTriangle, Activity, X, Camera, Image as ImageIcon, Loader2, ExternalLink, Sparkles } from "lucide-react";
 
 interface MedsTabProps {
@@ -18,6 +18,9 @@ interface MedsTabProps {
 }
 
 export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeText, onSetCalendarReminder, onSaveMedSearchHistory }) => {
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const albumInputRef = useRef<HTMLInputElement>(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [medQuery, setMedQuery] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string>("image/jpeg");
@@ -191,19 +194,38 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
             </button>
           )}
 
-          {/* Button Tải / Chụp Ảnh Thuốc */}
-          <label 
+          {/* Hidden Direct Camera & Album Inputs */}
+          <input 
+            type="file" 
+            ref={cameraInputRef}
+            accept="image/*" 
+            capture="environment"
+            className="hidden" 
+            onChange={(e) => {
+              handleImageSelect(e);
+              setShowPhotoModal(false);
+            }}
+          />
+          <input 
+            type="file" 
+            ref={albumInputRef}
+            accept="image/*" 
+            className="hidden" 
+            onChange={(e) => {
+              handleImageSelect(e);
+              setShowPhotoModal(false);
+            }}
+          />
+
+          {/* Single Clean Camera Icon Button */}
+          <button 
+            type="button"
+            onClick={() => setShowPhotoModal(true)}
             className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl cursor-pointer mr-1 transition-colors"
-            title="Chụp hoặc tải ảnh vỏ hộp thuốc"
+            title="Chụp hoặc chọn ảnh vỏ hộp thuốc"
           >
-            <Camera className="w-5 h-5" />
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              onChange={handleImageSelect}
-            />
-          </label>
+            <Camera className="w-5 h-5 text-emerald-600" />
+          </button>
 
           <button
             type="submit"
@@ -400,6 +422,88 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
             >
               <Calendar className="w-4.5 h-4.5 text-white shrink-0" />
               <span>Tạo lịch nhắc uống thuốc 8:00 sáng trên Google Calendar</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Action Sheet Modal Chọn nguồn ảnh */}
+      {showPhotoModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-200">
+          <div 
+            className="bg-white rounded-3xl p-5 w-full max-w-sm space-y-4 shadow-xl border border-slate-200 animate-in slide-in-from-bottom-6 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Tải ảnh vỏ hộp thuốc</h3>
+                  <p className="text-xs text-slate-500 font-medium">Chọn cách {userTitle} muốn tải ảnh</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowPhotoModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {/* Option 1: Chụp máy ảnh trực tiếp */}
+              <button
+                type="button"
+                onClick={() => {
+                  cameraInputRef.current?.click();
+                  setShowPhotoModal(false);
+                }}
+                className="w-full flex items-center gap-3 p-3.5 bg-emerald-50/80 hover:bg-emerald-100/80 border border-emerald-200/90 rounded-2xl transition-all text-left group"
+              >
+                <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="font-bold text-emerald-950 text-xs sm:text-sm block">
+                    📷 Chụp ảnh bằng Máy ảnh
+                  </span>
+                  <span className="text-[11px] text-emerald-700 font-semibold block">
+                    Mở camera điện thoại chụp trực tiếp vỏ thuốc
+                  </span>
+                </div>
+              </button>
+
+              {/* Option 2: Chọn từ Album */}
+              <button
+                type="button"
+                onClick={() => {
+                  albumInputRef.current?.click();
+                  setShowPhotoModal(false);
+                }}
+                className="w-full flex items-center gap-3 p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-2xl transition-all text-left group"
+              >
+                <div className="p-2.5 bg-slate-700 text-white rounded-xl shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <ImageIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 text-xs sm:text-sm block">
+                    🖼️ Chọn ảnh từ Album thư viện
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-semibold block">
+                    Chọn ảnh chụp vỏ thuốc sẵn có trong máy
+                  </span>
+                </div>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowPhotoModal(false)}
+              className="w-full py-2.5 text-center text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors pt-1"
+            >
+              Hủy bỏ
             </button>
           </div>
         </div>

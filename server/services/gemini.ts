@@ -9,8 +9,6 @@ export function getGeminiClient(): GoogleGenAI {
   if (!aiInstance) {
     const apiKey = process.env.GEMINI_API_KEY;
 
-    console.log("GEMINI_API_KEY nè", process.env.GEMINI_API_KEY);
-
     if (!apiKey) {
       console.warn("GEMINI_API_KEY environment variable is not set!");
     }
