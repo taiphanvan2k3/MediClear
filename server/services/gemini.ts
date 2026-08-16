@@ -1,25 +1,21 @@
 import { GoogleGenAI } from "@google/genai";
-import dotenv from "dotenv";
-
-dotenv.config({ override: true });
+import { config } from "../config/env";
 
 let aiInstance: GoogleGenAI | null = null;
 
 export function getGeminiClient(): GoogleGenAI {
   if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      console.warn("GEMINI_API_KEY environment variable is not set!");
+    if (!config.gemini.apiKey) {
+      console.warn("[Gemini] CẢNH BÁO: Biến môi trường GEMINI_API_KEY chưa được thiết lập!");
     }
 
     aiInstance = new GoogleGenAI({
-      apiKey: apiKey || "",
+      apiKey: config.gemini.apiKey,
       httpOptions: {
         headers: {
-          "User-Agent": "aistudio-build"
-        }
-      }
+          "User-Agent": "aistudio-build",
+        },
+      },
     });
   }
   return aiInstance;

@@ -3,42 +3,44 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { auth, db } from './firebase';
-import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState, useEffect } from "react";
+import { auth, db } from "./firebase";
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, User } from "firebase/auth";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
-import { 
-  TabType, 
-  ScanStateType, 
-  UserProfile, 
-  DEFAULT_PROFILE, 
-  HistoryRecord, 
+import {
+  TabType,
+  ScanStateType,
+  UserProfile,
+  DEFAULT_PROFILE,
+  HistoryRecord,
   DEFAULT_HISTORY_RECORDS,
   MedSearchHistoryItem,
-  DEFAULT_MED_SEARCH_HISTORY
-} from './types';
+  DEFAULT_MED_SEARCH_HISTORY,
+  PrescriptionScanResult
+} from "./types";
 
-import { Navbar } from './components/Navbar';
-import { BottomNav } from './components/BottomNav';
-import { LightboxModal } from './components/LightboxModal';
-import { AlertDialogs } from './components/AlertDialogs';
-import { RecordsTab } from './components/RecordsTab';
-import { MedsTab } from './components/MedsTab';
-import { HistoryTab } from './components/HistoryTab';
-import { ProfileTab } from './components/ProfileTab';
+import { Navbar } from "./components/Navbar";
+import { BottomNav } from "./components/BottomNav";
+import { LightboxModal } from "./components/LightboxModal";
+import { AlertDialogs } from "./components/AlertDialogs";
+import { RecordsTab } from "./components/RecordsTab";
+import { MedsTab } from "./components/MedsTab";
+import { HistoryTab } from "./components/HistoryTab";
+import { ProfileTab } from "./components/ProfileTab";
+import { SOSButton } from "./components/SOSButton";
 
 let cachedAccessToken: string | null = null;
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('RECORDS');
-  const [scanState, setScanState] = useState<ScanStateType>('IDLE');
+  const [activeTab, setActiveTab] = useState<TabType>("RECORDS");
+  const [scanState, setScanState] = useState<ScanStateType>("IDLE");
   const [user, setUser] = useState<User | null>(null);
-  
+
   // Profile State & Pronouns Configuration
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     try {
-      const saved = localStorage.getItem('mediClear_userProfile');
+      const saved = localStorage.getItem("mediClear_userProfile");
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error("Lỗi đọc profile từ localStorage:", e);
@@ -46,24 +48,26 @@ export default function App() {
     return DEFAULT_PROFILE;
   });
 
-  const [customConditionInput, setCustomConditionInput] = useState('');
+  const [customConditionInput, setCustomConditionInput] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSavedSuccess, setProfileSavedSuccess] = useState(false);
 
   // Dynamic pronouns helpers
   const uTitle = userProfile.userTitle || 'Bác';
   const aiTitle = userProfile.aiTitle || 'Cháu';
-  const userDisplayName = userProfile.nickname ? userProfile.nickname : (user?.displayName ? user.displayName : uTitle);
+  const userGreeting = (uTitle && uTitle !== 'Tôi') ? uTitle : 'Bác';
+  const userDisplayName = userProfile.nickname ? userProfile.nickname : (user?.displayName ? user.displayName : userGreeting);
 
   // Photos & Image States (Support Multiple Images)
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+  const [scanResult, setScanResult] = useState<PrescriptionScanResult | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Font size toggle for seniors
   const [isLargeText, setIsLargeText] = useState(() => {
-    return localStorage.getItem('mediClear_largeText') === 'true';
+    return localStorage.getItem("mediClear_largeText") === "true";
   });
 
   // Modal & Dialog States
@@ -74,7 +78,7 @@ export default function App() {
   // History Records List (Khám bệnh / Đơn thuốc)
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>(() => {
     try {
-      const saved = localStorage.getItem('mediClear_historyRecords');
+      const saved = localStorage.getItem("mediClear_historyRecords");
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error("Lỗi đọc historyRecords từ localStorage:", e);
@@ -85,7 +89,7 @@ export default function App() {
   // Medicine Search History List (Tra cứu thuốc)
   const [medSearchHistory, setMedSearchHistory] = useState<MedSearchHistoryItem[]>(() => {
     try {
-      const saved = localStorage.getItem('mediClear_medSearchHistory');
+      const saved = localStorage.getItem("mediClear_medSearchHistory");
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error("Lỗi đọc medSearchHistory từ localStorage:", e);
@@ -94,17 +98,17 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('mediClear_historyRecords', JSON.stringify(historyRecords));
+    localStorage.setItem("mediClear_historyRecords", JSON.stringify(historyRecords));
   }, [historyRecords]);
 
   useEffect(() => {
-    localStorage.setItem('mediClear_medSearchHistory', JSON.stringify(medSearchHistory));
+    localStorage.setItem("mediClear_medSearchHistory", JSON.stringify(medSearchHistory));
   }, [medSearchHistory]);
 
   const toggleLargeText = () => {
-    setIsLargeText(prev => {
+    setIsLargeText((prev) => {
       const next = !prev;
-      localStorage.setItem('mediClear_largeText', String(next));
+      localStorage.setItem("mediClear_largeText", String(next));
       return next;
     });
   };
@@ -115,15 +119,15 @@ export default function App() {
         setUser(currentUser);
         if (currentUser && db) {
           try {
-            const docRef = doc(db, 'users', currentUser.uid, 'profile', 'info');
+            const docRef = doc(db, "users", currentUser.uid, "profile", "info");
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
               const data = docSnap.data() as UserProfile;
-              setUserProfile(prev => ({ ...prev, ...data }));
-              localStorage.setItem('mediClear_userProfile', JSON.stringify(data));
+              setUserProfile(data);
+              localStorage.setItem("mediClear_userProfile", JSON.stringify(data));
             }
           } catch (e) {
-            console.error("Lỗi đồng bộ profile từ Cloud:", e);
+            console.error("Lỗi khi tải profile từ Firestore:", e);
           }
         }
       });
@@ -131,20 +135,22 @@ export default function App() {
     }
   }, []);
 
-  const handleSaveProfile = async (newProfile?: UserProfile) => {
-    const targetProfile = newProfile || userProfile;
+  const handleSaveProfile = async (targetProfile: UserProfile) => {
     setIsSavingProfile(true);
     try {
-      localStorage.setItem('mediClear_userProfile', JSON.stringify(targetProfile));
       if (user && db) {
-        await setDoc(doc(db, 'users', user.uid, 'profile', 'info'), {
+        await setDoc(doc(db, "users", user.uid, "profile", "info"), {
           ...targetProfile,
           updatedAt: serverTimestamp()
         });
       }
+      setUserProfile(targetProfile);
+      localStorage.setItem("mediClear_userProfile", JSON.stringify(targetProfile));
       setProfileSavedSuccess(true);
       setTimeout(() => setProfileSavedSuccess(false), 3000);
-      setAlertMessage(`Đã cập nhật cấu hình thông tin cá nhân! ${targetProfile.aiTitle} sẽ xưng hô là "${targetProfile.aiTitle}" và gọi là "${targetProfile.userTitle}" theo đúng cài đặt.`);
+      setAlertMessage(
+        `Đã cập nhật cấu hình thông tin cá nhân! ${targetProfile.aiTitle} sẽ xưng hô là "${targetProfile.aiTitle}" và gọi là "${targetProfile.userTitle}" theo đúng cài đặt.`
+      );
     } catch (e) {
       console.error("Lỗi khi lưu profile:", e);
       setAlertMessage("Lưu cấu hình không thành công, vui lòng thử lại sau nhé!");
@@ -155,41 +161,55 @@ export default function App() {
 
   const handleToggleCondition = (cond: string) => {
     const exists = userProfile.conditions.includes(cond);
-    const updatedConditions = exists 
-      ? userProfile.conditions.filter(c => c !== cond)
+    const updatedConditions = exists
+      ? userProfile.conditions.filter((c) => c !== cond)
       : [...userProfile.conditions, cond];
-    
-    setUserProfile(prev => ({ ...prev, conditions: updatedConditions }));
+
+    setUserProfile((prev) => ({ ...prev, conditions: updatedConditions }));
   };
 
   const handleAddCustomCondition = () => {
     if (!customConditionInput.trim()) return;
     const tag = customConditionInput.trim();
     if (!userProfile.conditions.includes(tag)) {
-      setUserProfile(prev => ({ ...prev, conditions: [...prev.conditions, tag] }));
+      setUserProfile((prev) => ({ ...prev, conditions: [...prev.conditions, tag] }));
     }
-    setCustomConditionInput('');
+    setCustomConditionInput("");
   };
 
-  useEffect(() => {
-    if (scanState === 'ANALYZING') {
-      const timer = setTimeout(() => {
-        setScanState('RESULT');
-      }, 2500);
-      return () => clearTimeout(timer);
+  const analyzeImagesWithAI = async (images: string[]) => {
+    try {
+      const response = await fetch("/api/scan/prescription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Không thể phân tích đơn thuốc vào lúc này.");
+      }
+
+      setScanResult(data);
+      setScanState("RESULT");
+    } catch (err: any) {
+      console.error("Lỗi khi phân tích đơn thuốc qua Gemini Vision:", err);
+      setAlertMessage(err.message || "Không thể phân tích ảnh đơn thuốc. Vui lòng thử lại!");
+      setScanState("IDLE");
     }
-  }, [scanState]);
+  };
 
   const handleFilesSelect = (files: FileList | File[]) => {
     const fileArray = Array.from(files) as File[];
-    const validFiles = fileArray.filter(f => f && f.type && f.type.startsWith('image/'));
-    
+    const validFiles = fileArray.filter((f) => f && f.type && f.type.startsWith("image/"));
+
     if (validFiles.length === 0) {
       setAlertMessage("Vui lòng chọn hoặc chụp tệp hình ảnh hợp lệ (JPG, PNG)!");
       return;
     }
 
-    const readPromises = validFiles.map(file => {
+    const readPromises = validFiles.map((file) => {
       return new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
@@ -197,10 +217,11 @@ export default function App() {
       });
     });
 
-    Promise.all(readPromises).then(newImages => {
+    Promise.all(readPromises).then((newImages) => {
       setSelectedImages(newImages);
       setActiveImageIndex(0);
-      setScanState('ANALYZING');
+      setScanState("ANALYZING");
+      analyzeImagesWithAI(newImages);
     });
   };
 
@@ -210,7 +231,8 @@ export default function App() {
         message: "Xóa ảnh duy nhất này sẽ quay về màn hình chụp tải ảnh ban đầu. Bác có muốn xóa không?",
         onConfirm: () => {
           setSelectedImages([]);
-          setScanState('IDLE');
+          setScanResult(null);
+          setScanState("IDLE");
           setConfirmDialog(null);
         }
       });
@@ -225,41 +247,65 @@ export default function App() {
   };
 
   const handleSaveResult = async () => {
+    if (!scanResult) return;
     setIsSaving(true);
     try {
+      const details = [];
+      if (scanResult.medications && scanResult.medications.length > 0) {
+        for (const med of scanResult.medications) {
+          details.push({
+            label: med.name,
+            value: `${med.dosage}${med.foodAdvice ? ` (Lưu ý: ${med.foodAdvice})` : ""}`,
+            status: "normal" as const
+          });
+        }
+      }
+      if (scanResult.labResults && scanResult.labResults.length > 0) {
+        for (const lab of scanResult.labResults) {
+          details.push({
+            label: lab.label,
+            value: lab.value,
+            status: lab.status
+          });
+        }
+      }
+
       const newRecord: HistoryRecord = {
         id: `rec-${Date.now()}`,
-        title: `Sổ khám mới (${selectedImages.length} trang)`,
-        date: new Date().toLocaleString('vi-VN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
+        title: scanResult.title || `Sổ khám mới (${selectedImages.length} trang)`,
+        date: new Date().toLocaleString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric"
         }),
-        type: 'lab',
-        badge: 'Đường cao',
-        badgeType: 'warning',
-        summary: `Chụp tải ${selectedImages.length} ảnh thực tế • Đường huyết 8.5 mmol/L`,
+        type: scanResult.type || "prescription",
+        badge: scanResult.badge || "Đang dùng",
+        badgeType: scanResult.badgeType || "info",
+        summary: scanResult.summary || `Đã phân tích ${selectedImages.length} ảnh thực tế.`,
+        facility: scanResult.facility,
+        doctor: scanResult.doctor,
+        diagnosis: scanResult.diagnosis,
         imageUrls: selectedImages,
-        details: [
-          { label: 'Chỉ số Đường huyết (Glucose)', value: '8.5 mmol/L (Mức CAO)', status: 'high' },
-          { label: 'Men gan (ALT/AST)', value: '24 U/L (Bình thường)', status: 'normal' }
-        ],
-        advice: `Bác bớt ăn cơm trắng, bánh kẹo ngọt và tăng cường ăn rau xanh, đi bộ nhẹ nhàng 30 phút mỗi ngày.`
+        details: details.length > 0 ? details : [{ label: "Thông tin", value: scanResult.summary }],
+        advice: scanResult.advice || "Bác nhớ uống thuốc đúng giờ và đều đặn nhé ạ.",
+        warning: scanResult.warning
       };
 
       if (user && db) {
-        await setDoc(doc(db, 'users', user.uid, 'records', newRecord.id), {
+        await setDoc(doc(db, "users", user.uid, "records", newRecord.id), {
           ...newRecord,
           createdAt: serverTimestamp()
         });
       }
 
-      setHistoryRecords(prev => [newRecord, ...prev]);
+      setHistoryRecords((prev) => [newRecord, ...prev]);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      setAlertMessage(`Đã lưu thành công ${selectedImages.length} ảnh và kết quả vào phần Lịch sử! ${uTitle} có thể mở xem lại bất cứ lúc nào.`);
+      setAlertMessage(
+        `Đã lưu thành công ${selectedImages.length} ảnh và kết quả vào phần Lịch sử! ${userGreeting} có thể mở xem lại bất cứ lúc nào.`
+      );
     } catch (e) {
       console.error("Lỗi khi lưu kết quả:", e);
       setAlertMessage("Lưu không thành công, vui lòng thử lại sau nhé!");
@@ -270,9 +316,9 @@ export default function App() {
 
   const handleDeleteRecord = (id: string) => {
     setConfirmDialog({
-      message: `${uTitle} có chắc chắn muốn xóa bản ghi lịch sử này không?`,
+      message: `${userGreeting} có chắc chắn muốn xóa bản ghi lịch sử này không?`,
       onConfirm: () => {
-        setHistoryRecords(prev => prev.filter(r => r.id !== id));
+        setHistoryRecords((prev) => prev.filter((r) => r.id !== id));
         setConfirmDialog(null);
         setAlertMessage("Đã xóa bản ghi khỏi lịch sử lưu trữ.");
       }
@@ -281,9 +327,9 @@ export default function App() {
 
   const handleAddPhotosToRecord = (recordId: string, files: FileList | File[]) => {
     const fileArray = Array.from(files) as File[];
-    const validFiles = fileArray.filter(f => f && f.type && f.type.startsWith('image/'));
+    const validFiles = fileArray.filter((f) => f && f.type && f.type.startsWith("image/"));
 
-    const readPromises = validFiles.map(file => {
+    const readPromises = validFiles.map((file) => {
       return new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
@@ -291,17 +337,19 @@ export default function App() {
       });
     });
 
-    Promise.all(readPromises).then(newImgs => {
-      setHistoryRecords(prev => prev.map(rec => {
-        if (rec.id === recordId) {
-          const currentImgs = rec.imageUrls || (rec.imageUrl ? [rec.imageUrl] : []);
-          return {
-            ...rec,
-            imageUrls: [...currentImgs, ...newImgs]
-          };
-        }
-        return rec;
-      }));
+    Promise.all(readPromises).then((newImgs) => {
+      setHistoryRecords((prev) =>
+        prev.map((rec) => {
+          if (rec.id === recordId) {
+            const currentImgs = rec.imageUrls || (rec.imageUrl ? [rec.imageUrl] : []);
+            return {
+              ...rec,
+              imageUrls: [...currentImgs, ...newImgs]
+            };
+          }
+          return rec;
+        })
+      );
       setAlertMessage(`Đã đính kèm thêm ${newImgs.length} ảnh mới vào phiếu khám!`);
     });
   };
@@ -324,12 +372,12 @@ export default function App() {
       foodAdvice: medData.foodAdvice,
       summary: medData.summary,
       sources: medData.sources,
-      date: 'Hôm nay, ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      date: "Hôm nay, " + new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
       timestamp: Date.now()
     };
 
-    setMedSearchHistory(prev => {
-      const filtered = prev.filter(i => i.name !== newItem.name);
+    setMedSearchHistory((prev) => {
+      const filtered = prev.filter((i) => i.name !== newItem.name);
       return [newItem, ...filtered];
     });
   };
@@ -338,7 +386,7 @@ export default function App() {
     setConfirmDialog({
       message: `${uTitle} có chắc muốn xóa lịch sử tra cứu thuốc này không?`,
       onConfirm: () => {
-        setMedSearchHistory(prev => prev.filter(item => item.id !== id));
+        setMedSearchHistory((prev) => prev.filter((item) => item.id !== id));
         setConfirmDialog(null);
         setAlertMessage("Đã xóa mục khỏi lịch sử tra cứu thuốc.");
       }
@@ -348,8 +396,8 @@ export default function App() {
   const handleLogin = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/calendar.events');
-    
+    provider.addScope("https://www.googleapis.com/auth/calendar.events");
+
     try {
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -377,7 +425,7 @@ export default function App() {
   const handleSetCalendarReminder = async (medName: string, timeStr: string) => {
     if (!user) {
       setConfirmDialog({
-        message: `${uTitle} cần đăng nhập Google để tự động tạo lịch nhắc trên Lịch Google Calendar. Bác có muốn đăng nhập ngay không?`,
+        message: `${userGreeting} cần đăng nhập Google để tự động tạo lịch nhắc trên Lịch Google Calendar. Bác/Bạn có muốn đăng nhập ngay không?`,
         onConfirm: () => {
           setConfirmDialog(null);
           handleLogin();
@@ -393,7 +441,7 @@ export default function App() {
     }
 
     try {
-      const [hours, minutes] = timeStr.split(':').map(Number);
+      const [hours, minutes] = timeStr.split(":").map(Number);
       const now = new Date();
       const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
       if (startTime < now) {
@@ -403,7 +451,7 @@ export default function App() {
 
       const event = {
         summary: `💊 Nhắc uống thuốc: ${medName}`,
-        description: `Lịch nhắc uống thuốc hàng ngày từ Trợ lý Y tế AI dành cho ${uTitle} ${userDisplayName}`,
+        description: `Lịch nhắc uống thuốc hàng ngày từ Trợ lý Y tế AI dành cho ${userDisplayName}`,
         start: {
           dateTime: startTime.toISOString(),
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -412,33 +460,33 @@ export default function App() {
           dateTime: endTime.toISOString(),
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
         },
-        recurrence: [
-          'RRULE:FREQ=DAILY'
-        ],
+        recurrence: ["RRULE:FREQ=DAILY"],
         reminders: {
           useDefault: false,
           overrides: [
-            { method: 'popup', minutes: 10 },
-            { method: 'email', minutes: 30 }
+            { method: "popup", minutes: 10 },
+            { method: "email", minutes: 30 }
           ]
         }
       };
 
-      const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-        method: 'POST',
+      const res = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${cachedAccessToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${cachedAccessToken}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(event)
       });
 
       if (res.ok) {
-        setAlertMessage(`🎉 Tuyệt vời! ${aiTitle} đã tạo thành công Lịch nhắc uống thuốc "${medName}" lúc ${timeStr} hàng ngày trên Google Calendar của ${uTitle}!`);
+        setAlertMessage(
+          `🎉 Tuyệt vời! ${aiTitle} đã tạo thành công Lịch nhắc uống thuốc "${medName}" lúc ${timeStr} hàng ngày trên Google Calendar!`
+        );
       } else {
         const errorData = await res.json();
         console.error("Google Calendar Error:", errorData);
-        setAlertMessage(`Chưa tạo được lịch nhắc trên Google Calendar. Mời ${uTitle} thử lại sau!`);
+        setAlertMessage(`Chưa tạo được lịch nhắc trên Google Calendar. Vui lòng thử lại sau!`);
       }
     } catch (e) {
       console.error("Calendar Sync Error:", e);
@@ -446,8 +494,27 @@ export default function App() {
     }
   };
 
+  const handleHeaderSOSClick = () => {
+    if (userProfile.emergencyPhone) {
+      const contactLabel = userProfile.emergencyName
+        ? `${userProfile.emergencyName} (${userProfile.emergencyPhone})`
+        : userProfile.emergencyPhone;
+      setAlertMessage(
+        `🚨 ${aiTitle} đang kết nối cuộc gọi khẩn cấp tới người thân: ${contactLabel}. Màn hình gọi điện sẽ xuất hiện ngay lập tức.`
+      );
+      window.location.href = `tel:${userProfile.emergencyPhone.replace(/\s+/g, "")}`;
+    } else {
+      setActiveTab("PROFILE");
+      setAlertMessage(
+        `🚨 Chưa cài SĐT khẩn cấp người thân! Vui lòng chạm vào Nút SOS màu đỏ nổi góc phải bên dưới để cài đặt nhanh.`
+      );
+    }
+  };
+
   return (
-    <div className={`min-h-screen bg-slate-100 font-sans text-slate-900 pb-24 ${isLargeText ? 'text-lg' : 'text-base'}`}>
+    <div
+      className={`min-h-screen bg-[#FAF6F0] font-sans text-stone-900 pb-32 ${isLargeText ? "text-lg" : "text-base"}`}
+    >
       {/* Top Navbar Header */}
       <Navbar
         user={user}
@@ -461,7 +528,7 @@ export default function App() {
 
       {/* Main Tab Screen Switcher */}
       <main className="max-w-md mx-auto">
-        {activeTab === 'RECORDS' && (
+        {activeTab === "RECORDS" && (
           <RecordsTab
             scanState={scanState}
             setScanState={setScanState}
@@ -480,10 +547,12 @@ export default function App() {
             userDisplayName={userDisplayName}
             isLargeText={isLargeText}
             setAlertMessage={setAlertMessage}
+            scanResult={scanResult}
+            onSetCalendarReminder={handleSetCalendarReminder}
           />
         )}
 
-        {activeTab === 'MEDS' && (
+        {activeTab === "MEDS" && (
           <MedsTab
             userTitle={uTitle}
             aiTitle={aiTitle}
@@ -493,7 +562,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'HISTORY' && (
+        {activeTab === "HISTORY" && (
           <HistoryTab
             user={user}
             onLogin={handleLogin}
@@ -510,7 +579,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'PROFILE' && (
+        {activeTab === "PROFILE" && (
           <ProfileTab
             user={user}
             userProfile={userProfile}
@@ -531,18 +600,19 @@ export default function App() {
         )}
       </main>
 
-      {/* Bottom Sticky Tab Navigation */}
-      <BottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+      {/* Global Floating SOS Emergency Call Button */}
+      <SOSButton
+        userProfile={userProfile}
+        onSaveProfile={handleSaveProfile}
         isLargeText={isLargeText}
+        setAlertMessage={setAlertMessage}
       />
 
+      {/* Bottom Sticky Tab Navigation */}
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} isLargeText={isLargeText} />
+
       {/* Lightbox Photo Viewer Modal */}
-      <LightboxModal
-        image={lightboxImage}
-        onClose={() => setLightboxImage(null)}
-      />
+      <LightboxModal image={lightboxImage} onClose={() => setLightboxImage(null)} />
 
       {/* Alert & Confirmation Dialog Modals */}
       <AlertDialogs

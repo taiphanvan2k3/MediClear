@@ -1,37 +1,43 @@
 # F3 — SOS Emergency — Specs
 
-> Nút khẩn cấp 1-touch gọi ngay người thân cho người cao tuổi
+> Nút khẩn cấp 1-touch gọi ngay người thân cho người cao tuổi (Hiển thị cố định trên mọi màn hình)
 
 ---
 
 ## Overview
 
-Nút SOS nổi (floating) luôn hiển thị trên màn hình, cho phép người cao tuổi gọi điện khẩn cấp cho người thân chỉ với 1 lần chạm.
+Nút SOS nổi toàn cầu (Global Floating SOS Button) luôn hiển thị ở góc dưới màn hình và Top Header trên **TẤT CẢ các trang**, cho phép người cao tuổi gọi điện khẩn cấp cho người thân chỉ với 1 lần chạm.
 
 ## User Stories
 
-1. **Là người cao tuổi**, khi tôi cảm thấy không khỏe đột ngột, tôi muốn gọi ngay cho con/cháu mà không cần tìm kiếm số điện thoại.
-2. **Là con/cháu**, tôi muốn cài số điện thoại SOS cho bố/mẹ để họ gọi được ngay khi cần.
+1. **Là người cao tuổi**, khi tôi cảm thấy không khỏe đột ngột, tôi muốn gọi ngay cho con/cháu chỉ bằng 1 lần chạm vào nút SOS nổi đỏ trên màn hình hiện tại mà không cần đi tìm số điện thoại.
+2. **Là người dùng lần đầu**, khi bấm vào nút SOS nổi mà chưa có số điện thoại, tôi muốn hiển thị ngay bảng cài đặt nhanh SĐT người thân tại chỗ để nhập và thực hiện cuộc gọi cấp cứu ngay lập tức.
+3. **Là con/cháu**, tôi muốn cài số điện thoại SOS cho bố/mẹ để họ gọi được ngay khi cần.
 
 ## Functional Requirements
 
-### SOS Button
-- Floating button tròn, màu đỏ (rose-600), nổi góc phải dưới
-- Vị trí: Trên BottomNav, dưới nội dung chính
-- Animation: Pulse nhẹ liên tục để dễ nhận biết
-- 1-touch → `window.open('tel:' + emergencyPhone)`
-- Long-press (500ms) → Hiện confirmation + gửi SMS (nếu hỗ trợ)
+### SOS Floating Button (Global)
+- Floating button tròn, màu đỏ khẩn cấp (`rose-600`), nổi cố định ở góc dưới bên phải (`bottom-20 right-4`).
+- Vị trí: Trên BottomNav (`z-40`), nổi trên tất cả nội dung ứng dụng.
+- Animation: Hiệu ứng pulse sóng lan tỏa nhẹ nhàng liên tục + badge rung lắc "GỌI SOS" giúp người cao tuổi dễ nhận diện khi khẩn cấp.
+- 1-touch khi ĐÃ cài số người thân → Tự động kết nối cuộc gọi `window.location.href = 'tel:' + emergencyPhone`.
+- 1-touch khi CHƯA cài số người thân → Bật ngay **Modal Cài Đặt Nhanh SĐT SOS** trực tiếp tại vị trí màn hình hiện tại.
 
-### Trạng thái
-- **Đã cài SOS**: Hiện nút đỏ với icon Phone
-- **Chưa cài SOS**: Hiện nút xám với icon + text "Cài SOS" → Navigate tới ProfileTab
+### Header Quick SOS Button
+- Tích hợp thêm nút bấm khẩn cấp mini SOS đỏ trên thanh Top Navbar header để người dùng có thể nhấp bất cứ lúc nào.
 
-### UI Component
-- `src/components/SOSButton.tsx` — Floating button
-- Render trong `App.tsx`, ngoài main content, trên BottomNav
+### Quick SOS Setup Modal
+- Cho phép nhập Tên người thân (vd: Con gái, Bác sĩ...) và Số điện thoại khẩn cấp.
+- Nút "LƯU SỐ & GỌI KHẨN CẤP NGAY": Lưu thông tin vào `userProfile` (localStorage + Cloud Firestore) và tự động kích hoạt cuộc gọi điện thoại.
+
+### UI Components
+- `src/components/SOSButton.tsx` — Global Floating Button + Quick Setup Modal.
+- `src/components/Navbar.tsx` — Header Quick SOS Button.
+- Render trong `App.tsx`, ngoài main content container.
 
 ## Non-Functional Requirements
 
-- Touch target: >= 56px (lớn hơn chuẩn 44px cho người già)
-- Không cần internet để gọi (dùng `tel:` protocol)
-- Không block UI (không modal confirm trước khi gọi)
+- Touch target: >= 64px (lớn hơn chuẩn 44px cho người già mắt kém, tay run).
+- Không cần internet để gọi điện thoại (dùng `tel:` protocol tích hợp hệ thống máy điện thoại).
+- Đạt chuẩn WCAG AAA tương phản màu sắc cao (`text-white` trên nền `rose-600` / `rose-700`).
+

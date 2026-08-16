@@ -36,14 +36,31 @@ MediClear/
 │       ├── voice-input/
 │       ├── onboarding/
 │       └── pwa/
-├── server/                        # Express backend
-│   ├── index.ts                   # Server entry, route registration
+├── server/                        # Express backend (Clean Layered Architecture)
+│   ├── config/
+│   │   └── env.ts                 # Centralized type-safe environment config
+│   ├── prompts/                   # Centralized AI prompt engineering
+│   │   ├── meds.prompt.ts         # Drug lookup & Google Search Grounding prompt
+│   │   ├── scan.prompt.ts         # Prescription / Lab Vision OCR prompt
+│   │   └── index.ts
+│   ├── middlewares/
+│   │   ├── errorHandler.ts        # Centralized global error handler
+│   │   ├── requestLogger.ts       # Lightweight API request logger
+│   │   └── vite.ts                # Vite dev middleware & static SPA handler
+│   ├── controllers/
+│   │   ├── meds.controller.ts     # Drug lookup controller
+│   │   └── scan.controller.ts     # Prescription scan controller
+│   ├── services/
+│   │   ├── gemini.ts              # Gemini SDK singleton
+│   │   ├── meds.service.ts        # Business logic: Drug lookup with search grounding
+│   │   └── scan.service.ts        # Business logic: Gemini Vision Multimodal OCR
 │   ├── routes/
-│   │   ├── meds.ts                # POST /api/meds/search (drug lookup)
-│   │   ├── scan.ts                # POST /api/scan (prescription/lab scan) [NEW]
+│   │   ├── index.ts               # Master API router (/api/health, /api/meds, /api/scan)
+│   │   ├── meds.ts                # POST /api/meds/search router
+│   │   ├── scan.ts                # POST /api/scan/prescription router
 │   │   └── interactions.ts        # POST /api/interactions/check [NEW]
-│   └── services/
-│       └── gemini.ts              # Gemini AI client singleton
+│   ├── app.ts                     # Express App factory & middleware pipeline
+│   └── index.ts                   # Clean server bootstrap & Graceful Shutdown
 ├── src/                           # React frontend
 │   ├── App.tsx                    # Root component, state management, tab routing
 │   ├── firebase.ts                # Firebase init (Auth + Firestore)
@@ -95,7 +112,7 @@ MediClear/
 
 | Method | Path | Status | Description |
 |--------|------|--------|-------------|
-| `POST` | `/api/scan` | 🔴 TODO | Scan ảnh đơn thuốc/xét nghiệm bằng Gemini Vision |
+| `POST` | `/api/scan` | ✅ Done | Scan ảnh đơn thuốc/xét nghiệm bằng Gemini 2.5 Flash Vision |
 | `POST` | `/api/meds/search` | ✅ Done | Tra cứu thuốc bằng tên/ảnh + Search Grounding |
 | `POST` | `/api/interactions/check` | 🔴 TODO | Kiểm tra tương tác thuốc |
 | `GET`  | `/api/health` | ✅ Done | Health check |

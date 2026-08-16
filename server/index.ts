@@ -1,42 +1,38 @@
-import express from "express";
-import path from "path";
-import { createServer as createViteServer } from "vite";
-import dotenv from "dotenv";
-import { medsRouter } from "./routes/meds";
+import { createApp } from "./app";
+import { config } from "./config/env";
+import type { Server } from "http";
 
-dotenv.config({ override: true });
+let server: Server | null = null;
 
-const app = express();
-const PORT = 3000;
+async function bootstrap() {
+  try {
+    const app = await createApp();
 
-app.use(express.json({ limit: "15mb" }));
-
-// Register API Routes
-app.use("/api/meds", medsRouter);
-
-// Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
+    server = app.listen(config.port, config.host, () => {
+      console.log(`\n🌿 MediClear Server đang chạy tại http://${config.host}:${config.port}`);
+      console.log(`⚡ Môi trường: ${config.nodeEnv.toUpperCase()}`);
+      console.log(`🩺 API Health: http://localhost:${config.port}/api/health\n`);
     });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+
+    // Graceful Shutdown
+    const handleShutdown = (signal: string) => {
+      console.log(`\n[Server] Nhận tín hiệu ${signal}. Đang đóng kết nối an toàn...`);
+      if (server) {
+        server.close(() => {
+          console.log("[Server] Đã đóng toàn bộ kết nối. Bye! 👋");
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    };
+
+    process.on("SIGTERM", () => handleShutdown("SIGTERM"));
+    process.on("SIGINT", () => handleShutdown("SIGINT"));
+  } catch (error) {
+    console.error("[Server] Lỗi nghiêm trọng khi khởi động server:", error);
+    process.exit(1);
   }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server đang chạy tại http://0.0.0.0:${PORT}`);
-  });
 }
 
-startServer();
+bootstrap();

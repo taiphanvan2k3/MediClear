@@ -1,32 +1,27 @@
-import React, { useState } from 'react';
-import { 
-  User as UserIcon, 
-  Check, 
-  LogIn, 
-  LogOut, 
-  Sliders, 
-  Plus, 
-  Loader2, 
-  Save, 
-  Phone, 
-  Type, 
+import React, { useState } from "react";
+import {
+  User as UserIcon,
+  Check,
+  LogIn,
+  LogOut,
+  Plus,
+  Loader2,
+  Save,
+  Phone,
+  Type,
   HeartPulse,
   Settings,
   X,
-  ChevronRight,
   ShieldAlert,
   Sparkles,
   Lock,
   ShieldCheck,
-  Cloud
-} from 'lucide-react';
-import { User } from 'firebase/auth';
-import { 
-  UserProfile, 
-  USER_TITLE_OPTIONS, 
-  AI_TITLE_OPTIONS, 
-  PRESET_CONDITIONS 
-} from '../types';
+  Cloud,
+  Edit3,
+  UserCheck
+} from "lucide-react";
+import { User } from "firebase/auth";
+import { UserProfile, USER_TITLE_OPTIONS, AI_TITLE_OPTIONS, PRESET_CONDITIONS } from "../types";
 
 interface ProfileTabProps {
   user: User | null;
@@ -65,15 +60,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
-  const uTitle = userProfile.userTitle || 'Bác';
-  const aiTitle = userProfile.aiTitle || 'Cháu';
-  const userDisplayName = userProfile.nickname ? userProfile.nickname : (user?.displayName ? user.displayName : uTitle);
+  const uTitle = userProfile.userTitle || "Bác";
+  const aiTitle = userProfile.aiTitle || "Cháu";
+  const userDisplayName = userProfile.nickname ? userProfile.nickname : user?.displayName ? user.displayName : uTitle;
 
-  const titleClass = isLargeText ? "text-2xl font-bold tracking-tight" : "text-xl font-bold tracking-tight";
+  const titleClass = isLargeText ? "text-2xl font-extrabold tracking-tight" : "text-xl font-extrabold tracking-tight";
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
   const descClass = isLargeText ? "text-sm" : "text-xs";
 
-  const isProfileEmpty = !userProfile.age && (!userProfile.conditions || userProfile.conditions.length === 0) && !userProfile.emergencyName;
+  const isProfileEmpty =
+    !userProfile.age && (!userProfile.conditions || userProfile.conditions.length === 0) && !userProfile.emergencyName;
 
   const handleSaveAndCloseModal = () => {
     onSaveProfile();
@@ -84,88 +80,91 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
   const handleEmergencyCall = () => {
     if (userProfile.emergencyPhone) {
-      window.location.href = `tel:${userProfile.emergencyPhone}`;
+      const contactLabel = userProfile.emergencyName
+        ? `${userProfile.emergencyName} (${userProfile.emergencyPhone})`
+        : userProfile.emergencyPhone;
+      setAlertMessage(
+        `🚨 ${aiTitle} đang kết nối cuộc gọi khẩn cấp tới người thân: ${contactLabel}. Màn hình gọi điện sẽ xuất hiện ngay lập tức.`
+      );
+      window.location.href = `tel:${userProfile.emergencyPhone.replace(/\s+/g, "")}`;
     } else {
       setAlertMessage(`Vui lòng cập nhật số điện thoại người thân trong mục Cài đặt trước khi thực hiện cuộc gọi SOS!`);
       setIsSettingsModalOpen(true);
     }
   };
 
-  // Trạng thái khi CHƯA ĐĂNG NHẬP: Hiển thị màn hình Yêu cầu đăng nhập tập trung, không hiển thị nhiều ô trống thừa
+  // Trạng thái khi CHƯA ĐĂNG NHẬP: Hiển thị màn hình Yêu cầu đăng nhập tập trung
   if (!user) {
     return (
       <div className="space-y-5 px-4 py-4 animate-in fade-in duration-300 max-w-md mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-          <UserIcon className="w-6 h-6 text-emerald-600" />
-          <h2 className={`${titleClass} text-slate-800`}>Hồ sơ cá nhân</h2>
+        <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
+          <UserIcon className="w-6 h-6 text-[#B85B43]" />
+          <h2 className={`${titleClass} text-stone-900 font-extrabold`}>Hồ sơ cá nhân</h2>
         </div>
 
         {/* Khung Yêu cầu Đăng nhập */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 text-center space-y-4 shadow-soft">
-          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 border border-emerald-200/80 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
-            <Lock className="w-8 h-8 text-emerald-600" />
+        <div className="bg-white border border-stone-200/90 rounded-3xl p-6 text-center space-y-4 shadow-soft">
+          <div className="w-16 h-16 bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3] rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+            <Lock className="w-8 h-8 text-[#B85B43]" />
           </div>
 
           <div className="space-y-1.5">
-            <h3 className="text-lg font-extrabold text-slate-900">
-              Yêu cầu đăng nhập tài khoản
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed max-w-xs mx-auto">
-              Để bảo mật hồ sơ sức khỏe cá nhân, tùy chỉnh xưng hô Trợ lý AI và tự động đồng bộ trên Google Cloud, {uTitle} vui lòng đăng nhập tài khoản Google.
+            <h3 className="text-lg font-extrabold text-stone-900">Yêu cầu đăng nhập tài khoản</h3>
+            <p className="text-xs sm:text-sm text-stone-600 font-medium leading-relaxed max-w-xs mx-auto">
+              Để bảo mật hồ sơ sức khỏe cá nhân, tùy chỉnh xưng hô Trợ lý AI và tự động đồng bộ trên Google Cloud, vui
+              lòng đăng nhập tài khoản Google.
             </p>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-left space-y-2">
-            <div className="flex items-start gap-2.5 text-xs font-semibold text-slate-700">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-3.5 text-left space-y-2">
+            <div className="flex items-start gap-2.5 text-xs font-semibold text-stone-700">
+              <ShieldCheck className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
               <span>Bảo mật 100% dữ liệu sức khỏe & người thân khẩn cấp</span>
             </div>
-            <div className="flex items-start gap-2.5 text-xs font-semibold text-slate-700">
-              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <span>Tùy chỉnh xưng hô Trợ lý AI phù hợp lứa tuổi ({uTitle} ↔ {aiTitle})</span>
+            <div className="flex items-start gap-2.5 text-xs font-semibold text-stone-700">
+              <Sparkles className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
+              <span>Tùy chỉnh xưng hô Trợ lý AI phù hợp lứa tuổi</span>
             </div>
-            <div className="flex items-start gap-2.5 text-xs font-semibold text-slate-700">
-              <Cloud className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 text-xs font-semibold text-stone-700">
+              <Cloud className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <span>Tự động đồng bộ lịch nhắc uống thuốc trên Google Calendar</span>
             </div>
           </div>
 
           <button
             onClick={onLogin}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-3.5 px-4 font-bold text-sm transition-all shadow-xs active:scale-98"
+            className="w-full flex items-center justify-center gap-2 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl py-3.5 px-4 font-bold text-sm transition-all shadow-xs active:scale-98"
           >
             <LogIn className="w-5 h-5 text-white" />
             Đăng nhập ngay bằng Google
           </button>
         </div>
 
-        {/* Cài đặt Nhanh Cỡ Chữ (Luôn hiển thị kể cả khi chưa đăng nhập) */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-soft">
+        {/* Cài đặt Nhanh Cỡ Chữ */}
+        <div className="bg-white border border-stone-200/90 rounded-2xl p-4 shadow-soft">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-sky-100 text-sky-700 rounded-lg">
+              <div className="p-2 bg-[#FBF0EC] text-[#B85B43] rounded-lg">
                 <Type className="w-5 h-5" />
               </div>
               <div>
-                <span className="font-bold text-slate-900 text-sm block">
-                  Cỡ chữ to dễ đọc
-                </span>
-                <span className="text-xs text-slate-500 font-medium">
-                  Tăng kích thước chữ cho người cao tuổi
-                </span>
+                <span className="font-bold text-stone-900 text-sm block">Cỡ chữ to dễ đọc</span>
+                <span className="text-xs text-stone-500 font-medium">Tăng kích thước chữ cho người cao tuổi</span>
               </div>
             </div>
 
-            <button 
+            <button
               onClick={onToggleLargeText}
               className={`w-12 h-7 rounded-full transition-colors relative p-1 shrink-0 ${
-                isLargeText ? 'bg-emerald-600' : 'bg-slate-300'
+                isLargeText ? "bg-[#B85B43]" : "bg-stone-300"
               }`}
             >
-              <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                isLargeText ? 'translate-x-5' : 'translate-x-0'
-              }`} />
+              <div
+                className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                  isLargeText ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
             </button>
           </div>
         </div>
@@ -173,228 +172,221 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     );
   }
 
-  // Trạng thái khi ĐÃ ĐĂNG NHẬP: Hiển thị đầy đủ Hồ sơ & Cài đặt
+  // Trạng thái khi ĐÃ ĐĂNG NHẬP: Giao diện Clinical Modern Wellness Tông Da Ấm
   return (
-    <div className="space-y-5 px-4 py-4 animate-in fade-in duration-300 max-w-md mx-auto">
-      {/* 1. Header Trang Hồ Sơ */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-        <div className="space-y-0.5">
+    <div className="space-y-4 px-4 py-4 animate-in fade-in duration-300 max-w-md mx-auto">
+      {/* 1. Header Trang Hồ Sơ với Single Primary Action */}
+      <div className="flex items-center justify-between pb-1 border-b border-stone-200/80">
+        <div>
           <div className="flex items-center gap-2">
-            <UserIcon className="w-6 h-6 text-emerald-600" />
-            <h2 className={`${titleClass} text-slate-800`}>Hồ sơ cá nhân</h2>
+            <UserIcon className="w-5 h-5 text-[#B85B43]" />
+            <h2 className={`${titleClass} text-stone-900 font-extrabold`}>Hồ sơ cá nhân</h2>
           </div>
-          <p className={`${descClass} text-slate-500`}>
-            Thông tin sức khỏe & Cấu hình Trợ lý AI
-          </p>
+          <p className={`${descClass} text-stone-500 font-medium`}>Thông tin sức khỏe & Cấu hình Trợ lý AI</p>
         </div>
 
         <button
           onClick={() => setIsSettingsModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl font-bold text-xs transition-all shadow-xs active:scale-95 shrink-0"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl font-extrabold text-xs transition-all shadow-xs active:scale-95 shrink-0"
         >
-          <Settings className="w-4 h-4 text-emerald-600" />
-          <span>Cài đặt</span>
+          <Edit3 className="w-3.5 h-3.5 text-white" />
+          <span>Chỉnh sửa hồ sơ</span>
         </button>
       </div>
 
-      {/* 2. Thẻ Trạng thái Tài khoản & Đồng bộ */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-soft space-y-3">
-        <div className="flex items-center gap-3">
-          {user?.photoURL ? (
-            <img src={user.photoURL} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-emerald-500 object-cover shrink-0" />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-lg border border-emerald-200 shrink-0">
-              <UserIcon className="w-6 h-6 text-emerald-600" />
+      {/* 2. Thẻ Tài Khoản Google (Warm Skin Tone Card) */}
+      <div className="bg-white border border-stone-200/90 rounded-3xl p-4.5 shadow-soft relative overflow-hidden">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3.5 min-w-0">
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt="Avatar"
+                className="w-13 h-13 rounded-full border-2 border-[#B85B43] object-cover shrink-0 shadow-xs"
+              />
+            ) : (
+              <div className="w-13 h-13 rounded-full bg-[#FBF0EC] text-[#B85B43] flex items-center justify-center font-extrabold text-xl border border-[#F4DCD3] shrink-0 shadow-xs">
+                {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserIcon className="w-6 h-6" />}
+              </div>
+            )}
+            <div className="space-y-0.5 min-w-0">
+              <h3 className={`${subTitleClass} text-stone-900 font-extrabold truncate leading-tight`}>
+                {user.displayName || userDisplayName}
+              </h3>
+              <p className={`${descClass} text-stone-500 font-medium truncate`}>{user.email || "Google Account"}</p>
+              <div className="pt-0.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#B85B43] bg-[#FBF0EC] border border-[#F4DCD3] px-2.5 py-0.5 rounded-full">
+                  <Check className="w-3 h-3 text-[#B85B43] shrink-0" />
+                  Đồng bộ Google Cloud
+                </span>
+              </div>
             </div>
-          )}
-          <div className="space-y-1 min-w-0 flex-1">
-            <h3 className={`${titleClass} text-slate-900 font-bold truncate`}>
-              {user.displayName || userDisplayName}
-            </h3>
-            <p className={`${descClass} text-slate-500 font-medium truncate`}>
-              {user.email || 'Google Account'}
-            </p>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-              <Check className="w-3 h-3 text-emerald-600" />
-              Đã đồng bộ an toàn với Google Cloud
-            </span>
-          </div>
-        </div>
-
-        <button 
-          onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl py-2 px-4 font-bold text-xs transition-all"
-        >
-          <LogOut className="w-4 h-4 text-slate-500" />
-          Đăng xuất tài khoản
-        </button>
-      </div>
-
-      {/* 3. Thẻ Thông tin Sức khỏe & Theo dõi */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-soft space-y-3.5">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
-              <HeartPulse className="w-4 h-4" />
-            </div>
-            <h3 className={`${subTitleClass} text-slate-900 font-bold`}>
-              Thông tin sức khỏe & Xưng hô
-            </h3>
           </div>
 
+          {/* Minimalist Logout Button */}
           <button
-            onClick={() => setIsSettingsModalOpen(true)}
-            className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5"
+            onClick={onLogout}
+            title="Đăng xuất tài khoản Google"
+            className="p-2.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl border border-stone-200/60 hover:border-rose-200 transition-all active:scale-95 shrink-0"
           >
-            Chỉnh sửa <ChevronRight className="w-3.5 h-3.5" />
+            <LogOut className="w-4.5 h-4.5" />
           </button>
         </div>
+      </div>
 
-        {/* Guidance Banner if profile is empty */}
-        {isProfileEmpty && (
-          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-xs text-emerald-900 flex items-start gap-2.5">
-            <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+      {/* 3. Thẻ Hồ sơ Y tế & Xưng hô AI (Clinical Health & Persona Card) */}
+      <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-soft space-y-4">
+        <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-[#FBF0EC] text-[#B85B43] rounded-xl border border-[#F4DCD3]">
+              <HeartPulse className="w-5 h-5 text-[#B85B43]" />
+            </div>
             <div>
-              <p className="font-bold text-slate-800">Chưa có thông tin sức khỏe</p>
-              <p className="text-slate-600 mt-0.5 leading-relaxed">
-                {uTitle} hãy bấm nút <b>"Chỉnh sửa"</b> phía trên để bổ sung độ tuổi, bệnh nền và người thân khẩn cấp giúp Trợ lý AI tư vấn chính xác hơn!
+              <h3 className={`${subTitleClass} text-stone-900 font-extrabold`}>Hồ sơ Y tế & Xưng hô AI</h3>
+              <p className="text-[11px] text-stone-500 font-medium">
+                Cấu hình tương tác Trợ lý AI và theo dõi bệnh nền
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Guidance Alert Banner if profile is empty */}
+        {isProfileEmpty && (
+          <div className="bg-[#FBF0EC] border border-[#F4DCD3] rounded-2xl p-3.5 text-xs text-stone-900 flex items-start gap-2.5 shadow-2xs">
+            <Sparkles className="w-4.5 h-4.5 text-[#B85B43] shrink-0 mt-0.5 animate-pulse" />
+            <div className="space-y-0.5">
+              <p className="font-extrabold text-stone-900">Bổ sung thông tin để AI tư vấn chính xác</p>
+              <p className="text-stone-700 font-medium leading-relaxed">
+                Vui lòng bấm nút <b>"Chỉnh sửa hồ sơ"</b> phía trên để thêm độ tuổi, bệnh nền và SĐT người thân SOS!
               </p>
             </div>
           </div>
         )}
 
-        <div className="space-y-2.5 text-xs text-slate-700 font-medium">
-          {/* Pronouns */}
-          <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-            <span className="text-slate-500 font-bold">Cách xưng hô AI:</span>
-            <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-              {uTitle} ↔ {aiTitle} {userProfile.nickname ? `(${userProfile.nickname})` : ''}
+        <div className="space-y-3 text-xs text-stone-700">
+          {/* Pronoun Badge Row */}
+          <div className="flex items-center justify-between bg-stone-50 p-3 rounded-2xl border border-stone-200/80">
+            <span className="text-stone-600 font-bold flex items-center gap-1.5">
+              <UserCheck className="w-4 h-4 text-[#B85B43]" />
+              Cách xưng hô AI:
+            </span>
+            <span className="font-extrabold text-[#B85B43] bg-[#FBF0EC] border border-[#F4DCD3] px-3 py-1 rounded-full shadow-2xs text-xs">
+              AI xưng là <b>{aiTitle}</b> • Gọi là <b>{uTitle}</b>{" "}
+              {userProfile.nickname ? `(${userProfile.nickname})` : ""}
             </span>
           </div>
 
-          {/* Age & Birth Year */}
-          <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-            <span className="text-slate-500 font-bold">Độ tuổi:</span>
-            <span className="font-bold text-slate-800">
-              {userProfile.age ? `${userProfile.age} tuổi` : <span className="text-slate-400 italic">Chưa cập nhật</span>} {userProfile.birthYear ? `(Sinh năm ${userProfile.birthYear})` : ''}
+          {/* Birth Year & Age Summary */}
+          <div className="flex items-center justify-between bg-stone-50 p-3 rounded-2xl border border-stone-200/80">
+            <span className="text-stone-600 font-bold">Năm sinh & Độ tuổi:</span>
+            <span className="font-extrabold text-stone-900 text-xs">
+              {userProfile.birthYear ? (
+                `Sinh năm ${userProfile.birthYear}${userProfile.age ? ` (${userProfile.age} tuổi)` : ""}`
+              ) : userProfile.age ? (
+                `${userProfile.age} tuổi`
+              ) : (
+                <span className="text-stone-400 italic font-medium">Chưa cập nhật</span>
+              )}
             </span>
           </div>
 
-          {/* Health Conditions */}
-          <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-            <span className="text-slate-500 font-bold block">Bệnh nền đang theo dõi:</span>
+          {/* Health Conditions Pill List */}
+          <div className="space-y-1.5 bg-stone-50 p-3 rounded-2xl border border-stone-200/80">
+            <span className="text-stone-600 font-bold block">Bệnh nền đang theo dõi:</span>
             <div className="flex flex-wrap gap-1.5 pt-0.5">
               {userProfile.conditions && userProfile.conditions.length > 0 ? (
                 userProfile.conditions.map((cond, idx) => (
-                  <span key={idx} className="bg-white text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold text-[11px] shadow-2xs">
+                  <span
+                    key={idx}
+                    className="bg-white text-stone-800 border border-stone-200 px-3 py-1 rounded-full font-bold text-xs shadow-2xs"
+                  >
                     {cond}
                   </span>
                 ))
               ) : (
-                <span className="text-slate-400 italic">Chưa chọn bệnh nền nào</span>
+                <span className="text-stone-400 italic font-medium">Chưa chọn bệnh nền nào</span>
               )}
             </div>
           </div>
 
-          {/* Emergency SOS contact */}
-          <div className="flex items-center justify-between bg-rose-50/70 p-2.5 rounded-xl border border-rose-100">
-            <span className="text-rose-900 font-bold flex items-center gap-1">
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+          {/* Emergency SOS Contact Pill */}
+          <div className="flex items-center justify-between bg-rose-50/80 p-3 rounded-2xl border border-rose-200/80">
+            <span className="text-rose-900 font-bold flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 text-rose-600" />
               Người thân SOS:
             </span>
-            <span className="font-bold text-rose-950">
-              {userProfile.emergencyName ? (
-                `${userProfile.emergencyName} (${userProfile.emergencyPhone || 'Chưa có SĐT'})`
-              ) : (
-                <span className="text-rose-400 italic font-normal">Chưa cài đặt</span>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-rose-950 text-xs">
+                {userProfile.emergencyName ? (
+                  `${userProfile.emergencyName} (${userProfile.emergencyPhone || "Chưa có SĐT"})`
+                ) : (
+                  <span className="text-rose-400 italic font-medium">Chưa cài đặt</span>
+                )}
+              </span>
+              {userProfile.emergencyPhone && (
+                <button
+                  onClick={handleEmergencyCall}
+                  title="Gọi thử nghiệm SOS"
+                  className="p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all active:scale-95"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                </button>
               )}
-            </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 4. Tùy chỉnh Giao diện & Cài đặt */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-soft space-y-3">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          TÙY CHỈNH GIAO DIỆN & CÀI ĐẶT
-        </h3>
-
-        {/* 1. Open Setting Modal Button Row */}
+        {/* Action Button Inside Card */}
         <button
           onClick={() => setIsSettingsModalOpen(true)}
-          className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-all text-left group"
+          className="w-full py-2.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-2xl font-bold text-xs text-stone-700 flex items-center justify-center gap-2 transition-all active:scale-98"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg group-hover:scale-105 transition-transform">
-              <Sliders className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="font-bold text-slate-900 text-sm block">
-                Cài đặt Xưng hô & Bệnh nền
-              </span>
-              <span className="text-xs text-slate-500 font-medium">
-                Thay đổi cách gọi, độ tuổi và người thân khẩn cấp
-              </span>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
+          <Settings className="w-4 h-4 text-[#B85B43]" />
+          <span>Cấu hình chi tiết Hồ sơ & Xưng hô</span>
         </button>
+      </div>
 
-        {/* 2. Large Text Switch Row */}
-        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+      {/* 4. Tùy chọn Giao diện & Ứng dụng */}
+      <div className="bg-white border border-stone-200/90 rounded-3xl p-4.5 shadow-soft">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-sky-100 text-sky-700 rounded-lg">
-              <Type className="w-5 h-5" />
+            <div className="p-2 bg-[#FBF0EC] text-[#B85B43] rounded-xl border border-[#F4DCD3]">
+              <Type className="w-5 h-5 text-[#B85B43]" />
             </div>
             <div>
-              <span className="font-bold text-slate-900 text-sm block">
-                Cỡ chữ to dễ đọc
-              </span>
-              <span className="text-xs text-slate-500 font-medium">
-                Tăng kích thước chữ cho người cao tuổi
-              </span>
+              <span className="font-bold text-stone-900 text-sm block">Cỡ chữ to dễ đọc</span>
+              <span className="text-xs text-stone-500 font-medium">Tăng kích thước chữ cho người cao tuổi</span>
             </div>
           </div>
 
-          <button 
+          <button
             onClick={onToggleLargeText}
             className={`w-12 h-7 rounded-full transition-colors relative p-1 shrink-0 ${
-              isLargeText ? 'bg-emerald-600' : 'bg-slate-300'
+              isLargeText ? "bg-[#B85B43]" : "bg-stone-300"
             }`}
           >
-            <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-              isLargeText ? 'translate-x-5' : 'translate-x-0'
-            }`} />
+            <div
+              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                isLargeText ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
           </button>
         </div>
       </div>
 
-      {/* 5. Nút Gọi Khẩn Cấp SOS */}
-      <button 
-        onClick={handleEmergencyCall}
-        className="w-full flex items-center justify-center gap-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl p-4 text-base font-bold active:scale-98 transition-all shadow-md"
-      >
-        <Phone className="w-5 h-5" />
-        {userProfile.emergencyPhone ? (
-          `GỌI NGƯỜI THÂN KHẨN CẤP (${userProfile.emergencyName || 'SOS'})`
-        ) : (
-          `CÀI ĐẶT SỐ NGƯỜI THÂN KHẨN CẤP (SOS)`
-        )}
-      </button>
-
-      {/* Modal Cài đặt Slide */}
+      {/* Slide Modal Cài đặt */}
       {isSettingsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-100 overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="p-4 bg-emerald-700 text-white flex items-center justify-between shrink-0">
+            <div className="p-4 bg-[#B85B43] text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <Settings className="w-5 h-5 text-emerald-200" />
-                <h3 className="font-bold text-base text-white">Cài đặt Hồ sơ & Xưng hô</h3>
+                <Settings className="w-5 h-5 text-amber-100" />
+                <h3 className="font-extrabold text-base text-white">Cài đặt Hồ sơ & Xưng hô</h3>
               </div>
               <button
                 onClick={() => setIsSettingsModalOpen(false)}
-                className="p-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl transition-colors"
+                className="p-1.5 bg-black/15 hover:bg-black/30 text-white rounded-xl transition-colors"
                 title="Đóng cài đặt"
               >
                 <X className="w-5 h-5" />
@@ -402,102 +394,124 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             </div>
 
             {/* Form cài đặt */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-slate-800">
-              {/* Xưng hô */}
-              <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                  1. XƯNG HÔ NÓI CHUYỆN VỚI AI:
-                </label>
-                <div className="space-y-2">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-stone-800">
+              {/* Xưng hô Dynamic Matrix */}
+              <div className="space-y-3 bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
+                <div className="flex items-center justify-between border-b border-stone-200/80 pb-2">
+                  <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
+                    1. XƯNG HÔ NÓI CHUYỆN VỚI AI:
+                  </label>
+                  <span className="text-[11px] font-bold text-[#B85B43] bg-[#FBF0EC] border border-[#F4DCD3] px-2.5 py-0.5 rounded-full">
+                    AI xưng <b>{aiTitle}</b> • Gọi là <b>{uTitle}</b>
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
                   <div className="space-y-1">
-                    <span className="text-[11px] font-semibold text-slate-500 block">AI gọi {uTitle} là:</span>
+                    <span className="text-[11px] font-bold text-stone-600 block">AI gọi bạn/bác là:</span>
                     <div className="flex flex-wrap gap-1.5">
-                      {USER_TITLE_OPTIONS.map((title) => (
-                        <button
-                          key={title}
-                          type="button"
-                          onClick={() => setUserProfile(prev => ({ ...prev, userTitle: title }))}
-                          className={`px-3 py-1 rounded-xl font-bold text-xs transition-all border ${
-                            userProfile.userTitle === title
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          {userProfile.userTitle === title && <Check className="w-3 h-3 inline mr-1" />}
-                          {title}
-                        </button>
-                      ))}
+                      {USER_TITLE_OPTIONS.map((title) => {
+                        const isSelected = userProfile.userTitle === title;
+                        return (
+                          <button
+                            key={title}
+                            type="button"
+                            onClick={() => {
+                              const isYoung = title === "Anh" || title === "Chị";
+                              const newAiTitle = isYoung ? "Em" : userProfile.aiTitle === "Con" ? "Con" : "Cháu";
+                              setUserProfile((prev) => ({
+                                ...prev,
+                                userTitle: title,
+                                aiTitle: newAiTitle
+                              }));
+                            }}
+                            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-1 ${
+                              isSelected
+                                ? "bg-[#B85B43] text-white border-[#B85B43] shadow-xs"
+                                : "bg-white text-stone-700 border-stone-200 hover:bg-stone-100"
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                            {title}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  <div className="space-y-1 pt-1 border-t border-slate-200">
-                    <span className="text-[11px] font-semibold text-slate-500 block">Trợ lý AI tự xưng là:</span>
+                  <div className="space-y-1 pt-2 border-t border-stone-200/80">
+                    <span className="text-[11px] font-bold text-stone-600 block">Trợ lý AI tự xưng là:</span>
                     <div className="flex flex-wrap gap-1.5">
-                      {AI_TITLE_OPTIONS.map((aiOpt) => (
-                        <button
-                          key={aiOpt}
-                          type="button"
-                          onClick={() => setUserProfile(prev => ({ ...prev, aiTitle: aiOpt }))}
-                          className={`px-3 py-1 rounded-xl font-bold text-xs transition-all border ${
-                            userProfile.aiTitle === aiOpt
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          {userProfile.aiTitle === aiOpt && <Check className="w-3 h-3 inline mr-1" />}
-                          {aiOpt}
-                        </button>
-                      ))}
+                      {(userProfile.userTitle === "Anh" || userProfile.userTitle === "Chị"
+                        ? ["Em"]
+                        : ["Cháu", "Con"]
+                      ).map((aiOpt) => {
+                        const isSelected = userProfile.aiTitle === aiOpt;
+                        return (
+                          <button
+                            key={aiOpt}
+                            type="button"
+                            onClick={() => setUserProfile((prev) => ({ ...prev, aiTitle: aiOpt }))}
+                            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all border flex items-center gap-1 ${
+                              isSelected
+                                ? "bg-[#B85B43] text-white border-[#B85B43] shadow-xs"
+                                : "bg-white text-stone-700 border-stone-200 hover:bg-stone-100"
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                            {aiOpt}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Nickname */}
-              <div className="space-y-1.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+              <div className="space-y-1.5 bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
                   2. TÊN HOẶC BIỆT DANH THÂN MẬT:
                 </label>
-                <input 
+                <input
                   type="text"
                   value={userProfile.nickname}
-                  onChange={(e) => setUserProfile(prev => ({ ...prev, nickname: e.target.value }))}
+                  onChange={(e) => setUserProfile((prev) => ({ ...prev, nickname: e.target.value }))}
                   placeholder={`Ví dụ: ${uTitle} Tám, ${uTitle} Nam...`}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:border-emerald-500 transition-all"
+                  className="w-full bg-white border border-stone-300 rounded-xl px-3.5 py-2 text-sm font-semibold text-stone-900 focus:outline-none focus:border-[#B85B43] transition-all"
                 />
               </div>
 
-              {/* Age & Birth Year */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                    ĐỘ TUỔI (TUỔI):
-                  </label>
-                  <input 
-                    type="number"
-                    value={userProfile.age}
-                    onChange={(e) => setUserProfile(prev => ({ ...prev, age: e.target.value }))}
-                    placeholder="Ví dụ: 68"
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                    NĂM SINH:
-                  </label>
-                  <input 
-                    type="number"
-                    value={userProfile.birthYear}
-                    onChange={(e) => setUserProfile(prev => ({ ...prev, birthYear: e.target.value }))}
-                    placeholder="Ví dụ: 1958"
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
+              {/* Birth Year Input Only */}
+              <div className="space-y-1.5 bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">3. NĂM SINH:</label>
+                <input
+                  type="number"
+                  value={userProfile.birthYear}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const currentYear = new Date().getFullYear();
+                    let calcAge = "";
+                    if (val && !isNaN(Number(val)) && val.length === 4) {
+                      const yr = parseInt(val, 10);
+                      if (yr > 1900 && yr <= currentYear) {
+                        calcAge = String(currentYear - yr);
+                      }
+                    }
+                    setUserProfile((prev) => ({
+                      ...prev,
+                      birthYear: val,
+                      age: calcAge || (val === "" ? "" : prev.age)
+                    }));
+                  }}
+                  placeholder="Ví dụ: 1958, 2003..."
+                  className="w-full bg-white border border-stone-300 rounded-xl px-3.5 py-2 text-sm font-bold text-stone-900 focus:outline-none focus:border-[#B85B43] transition-all"
+                />
               </div>
 
               {/* Health Conditions */}
-              <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+              <div className="space-y-2 bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
                   4. BỆNH NỀN / TIỀN SỬ SỨC KHỎE THEO DÕI:
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -510,11 +524,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                         onClick={() => onToggleCondition(cond)}
                         className={`px-2.5 py-1 rounded-full font-bold text-xs transition-all border flex items-center gap-1 ${
                           isSelected
-                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300 shadow-2xs'
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                            ? "bg-[#FBF0EC] text-[#B85B43] border-[#F4DCD3] shadow-2xs"
+                            : "bg-white text-stone-700 border-stone-200 hover:bg-stone-100"
                         }`}
                       >
-                        {isSelected ? <Check className="w-3 h-3 text-emerald-700" /> : <Plus className="w-3 h-3" />}
+                        {isSelected ? <Check className="w-3 h-3 text-[#B85B43]" /> : <Plus className="w-3 h-3" />}
                         {cond}
                       </button>
                     );
@@ -523,18 +537,18 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
                 {/* Custom Condition */}
                 <div className="flex gap-2 pt-1">
-                  <input 
+                  <input
                     type="text"
                     value={customConditionInput}
                     onChange={(e) => setCustomConditionInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && onAddCustomCondition()}
+                    onKeyDown={(e) => e.key === "Enter" && onAddCustomCondition()}
                     placeholder="Thêm bệnh nền khác..."
-                    className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+                    className="flex-1 bg-white border border-stone-300 rounded-xl px-3 py-1.5 text-xs font-medium text-stone-900 focus:outline-none focus:border-[#B85B43]"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={onAddCustomCondition}
-                    className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all"
+                    className="bg-[#FBF0EC] hover:bg-[#F4DCD3] text-[#B85B43] border border-[#F4DCD3] px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" /> Thêm
                   </button>
@@ -542,39 +556,37 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               </div>
 
               {/* Emergency Contact */}
-              <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+              <div className="space-y-2 bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
                   5. NGƯỜI THÂN KHẨN CẤP (NÚT SOS):
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  <input 
+                  <input
                     type="text"
                     value={userProfile.emergencyName}
-                    onChange={(e) => setUserProfile(prev => ({ ...prev, emergencyName: e.target.value }))}
+                    onChange={(e) => setUserProfile((prev) => ({ ...prev, emergencyName: e.target.value }))}
                     placeholder="Tên người thân"
-                    className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-500"
+                    className="bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 focus:outline-none focus:border-[#B85B43]"
                   />
-                  <input 
+                  <input
                     type="tel"
                     value={userProfile.emergencyPhone}
-                    onChange={(e) => setUserProfile(prev => ({ ...prev, emergencyPhone: e.target.value }))}
+                    onChange={(e) => setUserProfile((prev) => ({ ...prev, emergencyPhone: e.target.value }))}
                     placeholder="Số điện thoại"
-                    className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
+                    className="bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs font-bold text-stone-900 focus:outline-none focus:border-[#B85B43]"
                   />
                 </div>
               </div>
             </div>
 
             {/* Modal Footer Action */}
-            <div className="p-3 bg-slate-50 border-t border-slate-200 shrink-0">
-              <button 
+            <div className="p-3 bg-stone-50 border-t border-stone-200 shrink-0">
+              <button
                 type="button"
                 onClick={handleSaveAndCloseModal}
                 disabled={isSavingProfile}
-                className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 font-bold text-sm transition-all shadow-xs active:scale-98 ${
-                  profileSavedSuccess
-                    ? 'bg-sky-700 text-white'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 font-extrabold text-sm transition-all shadow-xs active:scale-98 ${
+                  profileSavedSuccess ? "bg-stone-800 text-white" : "bg-[#B85B43] hover:bg-[#A34E37] text-white"
                 }`}
               >
                 {isSavingProfile ? (
@@ -584,7 +596,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 ) : (
                   <Save className="w-5 h-5" />
                 )}
-                {profileSavedSuccess ? 'Đã lưu cấu hình thành công!' : 'LƯU VÀ ĐÓNG CÀI ĐẶT'}
+                {profileSavedSuccess ? "Đã lưu cấu hình thành công!" : "LƯU VÀ ĐÓNG CÀI ĐẶT"}
               </button>
             </div>
           </div>
