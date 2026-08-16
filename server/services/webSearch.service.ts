@@ -15,7 +15,7 @@ export interface WebSearchResult {
 export class WebSearchService {
   /**
    * Tìm kiếm thông tin thuốc từ các nguồn y tế hàng đầu Việt Nam
-   * @param drugName Tên hoạt chất/tên y tế chuẩn (ví dụ: "Tretinoin 0.05%", "Atenolol 50mg")
+   * @param drugName Tên thuốc hoặc hoạt chất y tế (ví dụ: "tretinoin 0.05", "Atenolol 50mg")
    */
   async searchMedicine(drugName: string): Promise<WebSearchResult[]> {
     const cleanTarget = drugName.trim();
@@ -38,39 +38,66 @@ export class WebSearchService {
   }
 
   /**
-   * Tìm kiếm qua Tavily Search API với danh mục domain y tế tuyến đầu
+   * Tìm kiếm qua Tavily Search API với danh mục domain y tế chọn lọc
    */
   private async _searchTavily(drugName: string, apiKey: string): Promise<WebSearchResult[]> {
     try {
+      // Tìm kiếm trực tiếp với tên thuốc để tối ưu điểm relevance
+      const searchQuery = drugName.toLowerCase().startsWith("thuốc") ? drugName : `Thuốc ${drugName}`;
+
       const response = await fetch("https://api.tavily.com/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_key: apiKey,
-          query: `Thuốc ${drugName} chỉ định liều dùng tác dụng`,
+          query: searchQuery,
           search_depth: "basic",
           max_results: 6,
           include_images: true,
-          include_domains: [...TRUSTED_MEDICAL_DOMAINS]
-        })
+          include_domains: [...TRUSTED_MEDICAL_DOMAINS],
+        }),
       });
 
       if (!response.ok) return [];
       const data = await response.json();
       const rawResults = data.results || [];
 
-      return rawResults.slice(0, 4).map((r: any) => {
-        const domainLabel = getMedicalDomainLabel(r.url);
-        // Định dạng tiêu đề đẹp: "[Vinmec] Tên bài viết"
-        const cleanTitle = r.title
-          ? r.title.replace(/\s*[-|–]\s*(Vinmec|Long Châu|Tâm Anh|YouMed|Medlatec|Trung Tâm Thuốc).*/gi, "").trim()
-          : "Tài liệu Y tế";
-        return {
-          title: `[${domainLabel}] ${cleanTitle}`,
-          uri: r.url,
-          snippet: r.content || ""
-        };
-      });
+      // Trích xuất từ khóa chính của thuốc (bỏ từ "thuốc", "viên", "bôi")
+      const keywords = drugName
+        .toLowerCase()
+        .split(/[\s,./+-_%0-9]+/)
+        .filter((w) => w.length >= 3 && !["thuốc", "viên", "bôi", "ngoài", "uống", "chai", "lọ"].includes(w));
+
+      // Lọc các bài viết thật sự liên quan và có độ tin cậy cao
+      const verifiedResults: WebSearchResult[] = [];
+      for (const r of rawResults) {
+        const titleLower = (r.title || "").toLowerCase();
+        const contentLower = (r.content || "").toLowerCase();
+        const score = typeof r.score === "number" ? r.score : 0.5;
+
+        // Chỉ lấy nếu điểm score > 0.3 hoặc bài viết chứa từ khóa hoạt chất cốt lõi
+        const isKeywordMatch =
+          keywords.length === 0 || keywords.some((kw) => titleLower.includes(kw) || contentLower.includes(kw));
+
+        if ((score >= 0.4 || isKeywordMatch) && r.url) {
+          const domainLabel = getMedicalDomainLabel(r.url);
+          const cleanTitle = r.title
+            ? r.title.replace(/\s*[-|–]\s*(Vinmec|Long Châu|Tâm Anh|YouMed|Medlatec|Trung Tâm Thuốc|HelloBacsi).*/gi, "").trim()
+            : "Tài liệu Y tế";
+
+          verifiedResults.push({
+            title: `[${domainLabel}] ${cleanTitle}`,
+            uri: r.url,
+            snippet: r.content || "",
+          });
+        }
+      }
+
+      if (verifiedResults.length > 0) {
+        return verifiedResults.slice(0, 4);
+      }
+
+      return [];
     } catch (e) {
       return [];
     }
@@ -81,17 +108,15 @@ export class WebSearchService {
    */
   private async _searchPublicMedicalWeb(drugName: string): Promise<WebSearchResult[]> {
     try {
-      const targetSites = TRUSTED_MEDICAL_DOMAINS.slice(0, 5)
-        .map((d) => `site:${d}`)
-        .join(" OR ");
-      const searchTarget = `Thuốc ${drugName} tác dụng chỉ định ${targetSites}`;
+      const targetSites = TRUSTED_MEDICAL_DOMAINS.slice(0, 5).map((d) => `site:${d}`).join(" OR ");
+      const searchTarget = `Thuốc ${drugName} ${targetSites}`;
       const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchTarget)}`;
 
       const response = await fetch(searchUrl, {
         headers: {
           "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-        }
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        },
       });
 
       if (!response.ok) return [];
@@ -112,7 +137,7 @@ export class WebSearchService {
           results.push({
             title: domainLabel,
             uri: cleanUrl,
-            snippet
+            snippet,
           });
         }
       }

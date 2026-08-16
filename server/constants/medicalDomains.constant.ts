@@ -3,7 +3,7 @@
  */
 
 export const TRUSTED_MEDICAL_DOMAINS = [
-  // 1. Cơ quan Quản lý Y tế & Viện Tuyến Trung Ương
+  // 1. Cơ quan Quản lý Y tế & Bệnh viện Tuyến Trung Ương
   "moh.gov.vn",           // Bộ Y Tế Việt Nam
   "dav.gov.vn",           // Cục Quản lý Dược - Bộ Y Tế
   "bachmai.gov.vn",       // Bệnh viện Bạch Mai
@@ -12,15 +12,14 @@ export const TRUSTED_MEDICAL_DOMAINS = [
   "k.gov.vn",             // Bệnh viện K Trung ương
   "umc.edu.vn",           // Bệnh viện Đại học Y Dược TP.HCM
 
-  // 2. Hệ thống Bệnh viện Đa khoa & Quốc tế Hàng đầu
+  // 2. Hệ thống Bệnh viện Đa khoa & Quốc tế Hàng đầu (Có bài viết chuyên khoa thẩm định)
   "vinmec.com",           // BV Đa khoa Quốc tế Vinmec
   "tamanhhospital.vn",    // BV Đa khoa Tâm Anh
   "medlatec.vn",          // Hệ thống Y tế Medlatec
 
   // 3. Cơ sở Dữ liệu Dược thư Quốc gia & Hệ thống Nhà thuốc chuẩn GPP
-  "trungtamthuoc.com",     // Trung Tâm Thuốc Central Pharmacy (Dược thư Quốc gia)
   "nhathuoclongchau.com.vn", // Nhà thuốc FPT Long Châu
-  "thuocbietduoc.com.vn", // Cơ sở dữ liệu Thuốc Biệt Dược
+  "trungtamthuoc.com",     // Trung Tâm Thuốc Central Pharmacy (Dược thư Quốc gia)
   "pharmacity.vn",        // Chuỗi Nhà thuốc Pharmacity
 
   // 4. Cổng thông tin Y tế được Bác sĩ/Dược sĩ thẩm định chuyên môn
@@ -46,7 +45,6 @@ export function getMedicalDomainLabel(urlStr: string): string {
     if (host.includes("medlatec")) return "Hệ thống Y tế Medlatec";
     if (host.includes("longchau")) return "Nhà thuốc FPT Long Châu";
     if (host.includes("trungtamthuoc")) return "Trung Tâm Thuốc Central Pharmacy";
-    if (host.includes("thuocbietduoc")) return "Cơ sở Dữ liệu Thuốc Biệt Dược";
     if (host.includes("pharmacity")) return "Nhà thuốc Pharmacity";
     if (host.includes("youmed")) return "Cẩm nang Y khoa YouMed";
     if (host.includes("hellobacsi")) return "Nền tảng Y tế HelloBacsi";
