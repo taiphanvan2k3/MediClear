@@ -72,19 +72,21 @@ export class ScanService {
 
     const ai = getGeminiClient();
 
+    const targetModel = config.gemini.fallbackModel || "gemini-3.1-flash-lite";
+
     let response: any;
     try {
       response = await ai.models.generateContent({
-        model: config.gemini.primaryGroundingModel || "gemini-2.5-flash",
+        model: targetModel,
         contents,
         config: {
           systemInstruction: SCAN_SYSTEM_INSTRUCTION,
         },
       });
     } catch (err1: any) {
-      console.warn("[ScanService Tier 1 Fail] -> Thử lại với fallback model:", err1.message || err1);
+      console.warn(`[ScanService Primary Fail] ${targetModel} -> Thử sang gemini-3.5-flash:`, err1.message || err1);
       response = await ai.models.generateContent({
-        model: config.gemini.fallbackModel || "gemini-2.5-flash-lite",
+        model: "gemini-3.5-flash",
         contents,
         config: {
           systemInstruction: SCAN_SYSTEM_INSTRUCTION,
@@ -103,6 +105,14 @@ export class ScanService {
       }
     } catch (e) {
       console.warn("[ScanService] Lỗi parse JSON từ Gemini OCR:", e);
+    }
+
+    // Kiểm tra guardrail tính hợp lệ tài liệu y tế
+    if (parsed?.isValidDocument === false) {
+      throw new Error(
+        parsed.errorMessage ||
+          "Hình ảnh không phải là đơn thuốc hoặc phiếu xét nghiệm y tế hợp lệ. Bác vui lòng chụp rõ nét đơn khám hoặc kết quả xét nghiệm để MediClear phân tích nhé!"
+      );
     }
 
     if (!parsed) {

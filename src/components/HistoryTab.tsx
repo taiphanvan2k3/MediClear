@@ -26,7 +26,9 @@ import {
   Filter,
   X,
   RotateCcw,
-  CheckCircle2
+  CheckCircle2,
+  HeartPulse,
+  Globe
 } from "lucide-react";
 import { User } from "firebase/auth";
 import { HistoryRecord, MedSearchHistoryItem } from "../types";
@@ -322,10 +324,17 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3]">
                 Tra cứu thuốc AI
               </span>
-              <h2 className={`${subTitleClass} text-stone-900 font-extrabold leading-snug pt-1 truncate`}>
+              <h2 className={`${subTitleClass} text-stone-900 font-extrabold leading-snug pt-1 wrap-break-word`}>
                 {selectedMedItem.name}
               </h2>
-              <p className="text-xs font-medium text-stone-500 flex items-center gap-1">
+              {selectedMedItem.genericName && (
+                <div className="pt-0.5">
+                  <span className="text-[11px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200 inline-block">
+                    Hoạt chất: <span className="text-stone-900">{selectedMedItem.genericName}</span>
+                  </span>
+                </div>
+              )}
+              <p className="text-xs font-medium text-stone-500 flex items-center gap-1 pt-0.5">
                 <Calendar className="w-3.5 h-3.5 text-stone-400" />
                 {selectedMedItem.date}
               </p>
@@ -343,7 +352,20 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             </button>
           </div>
 
-          <div className="space-y-1">
+          {/* Mục Công dụng */}
+          {selectedMedItem.purpose && (
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1">
+                <HeartPulse className="w-3.5 h-3.5 text-sky-600" /> Công dụng & Điều trị:
+              </h4>
+              <div className="bg-sky-50 p-2.5 rounded-xl border border-sky-100 text-xs font-semibold text-sky-950 leading-relaxed">
+                {Array.isArray(selectedMedItem.purpose) ? selectedMedItem.purpose.join(" • ") : selectedMedItem.purpose}
+              </div>
+            </div>
+          )}
+
+          {/* Mục Liều dùng */}
+          <div className="space-y-1 pt-1 border-t border-stone-100">
             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1">
               <Clock className="w-3.5 h-3.5 text-[#B85B43]" /> Liều dùng & Cách dùng:
             </h4>
@@ -352,6 +374,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             </div>
           </div>
 
+          {/* Mục Cảnh báo */}
           <div className="space-y-1 pt-1 border-t border-stone-100">
             <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
               <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Lưu ý ăn uống & Cảnh báo:
@@ -362,6 +385,36 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                 : selectedMedItem.foodAdvice}
             </div>
           </div>
+
+          {/* Mục Tóm tắt */}
+          {selectedMedItem.summary && (
+            <div className="bg-[#FBF0EC]/60 border border-[#F4DCD3] p-3 rounded-xl text-xs text-stone-800 leading-relaxed font-medium">
+              💡 <span className="font-bold text-[#B85B43]">Tóm tắt:</span> {selectedMedItem.summary}
+            </div>
+          )}
+
+          {/* Nguồn tài liệu y tế */}
+          {selectedMedItem.sources && selectedMedItem.sources.length > 0 && (
+            <div className="space-y-1.5 pt-2 border-t border-stone-100">
+              <h4 className="text-[11px] font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-emerald-600" /> Nguồn tài liệu y khoa tham khảo:
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMedItem.sources.map((s, idx) => (
+                  <a
+                    key={idx}
+                    href={s.uri}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors truncate max-w-full"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{s.title}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="pt-2">
             <button
@@ -565,7 +618,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     </span>
                     <span className="text-[11px] text-stone-400 font-medium">{item.date}</span>
                   </div>
-                  <h3 className="font-extrabold text-sm text-stone-900 group-hover:text-[#B85B43] transition-colors truncate">
+                  <h3 className="font-extrabold text-sm text-stone-900 group-hover:text-[#B85B43] transition-colors break-words line-clamp-2 leading-snug">
                     {item.name}
                   </h3>
                 </div>

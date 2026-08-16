@@ -1,6 +1,7 @@
 import { getGeminiClient } from "./gemini";
 import { config } from "../config/env";
 import { MED_SYSTEM_INSTRUCTION, buildMedPromptText } from "../prompts";
+import { webSearchService, WebSearchResult } from "./webSearch.service";
 
 export interface SearchMedInput {
   query?: string;
@@ -15,14 +16,13 @@ export interface GroundingSource {
 
 export interface MedSearchResult {
   name: string;
+  genericName?: string;
   dosage: string[];
   purpose: string[];
   foodAdvice: string[];
   summary: string;
   sources: GroundingSource[];
 }
-
-let searchModelToggle = false;
 
 function cleanItems(val: unknown): string[] {
   if (Array.isArray(val)) {
@@ -49,10 +49,21 @@ function cleanItems(val: unknown): string[] {
 
 export class MedsService {
   /**
-   * Tra cứu thông tin thuốc bằng văn bản hoặc ảnh chụp vỏ hộp qua Google Gemini AI + Search Grounding
+   * Tra cứu thông tin thuốc bằng văn bản (kết hợp Tavily Search) hoặc ảnh chụp vỏ hộp (1-Shot Direct Multimodal Vision)
    */
   async searchMed(input: SearchMedInput): Promise<MedSearchResult> {
     const { query, imageBase64, mimeType } = input;
+    const ai = getGeminiClient();
+
+    // 1. Nếu người dùng nhập từ khóa tìm kiếm -> chạy Tavily / Web Search để lấy tài liệu y tế
+    let webResults: WebSearchResult[] = [];
+    if (query) {
+      webResults = await webSearchService.searchMedicine(query);
+    }
+
+    const webContext = webResults.length > 0
+      ? webResults.map((r) => `[${r.title}] (${r.uri}): ${r.snippet}`).join("\n\n")
+      : undefined;
 
     const contents: any[] = [];
 
@@ -67,56 +78,36 @@ export class MedsService {
     }
 
     contents.push({
-      text: buildMedPromptText(query),
+      text: buildMedPromptText(query, webContext),
     });
 
-    const ai = getGeminiClient();
     let response: any;
     let groundingChunks: any[] = [];
 
-    // Xoay vòng luân phiên giữa primary & secondary model để tối ưu quota
-    const primaryModel = searchModelToggle
-      ? config.gemini.primaryGroundingModel
-      : config.gemini.secondaryGroundingModel;
-    const secondaryModel = searchModelToggle
-      ? config.gemini.secondaryGroundingModel
-      : config.gemini.primaryGroundingModel;
-    searchModelToggle = !searchModelToggle;
+    // Chọn model tối ưu tốc độ phản hồi: Ưu tiên gemini-3.1-flash-lite cho 1-Shot Vision
+    const targetModel = config.gemini.fallbackModel || "gemini-3.1-flash-lite";
 
     try {
-      // Tier 1: Thử model xoay vòng chính có Search Grounding
       response = await ai.models.generateContent({
-        model: primaryModel,
+        model: targetModel,
         contents,
         config: {
           systemInstruction: MED_SYSTEM_INSTRUCTION,
-          tools: [{ googleSearch: {} }],
         },
       });
       groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     } catch (err1: any) {
-      console.warn(`[Tier 1 Fail] ${primaryModel} -> Thử sang Tier 2 (${secondaryModel}):`, err1.message || err1);
+      console.warn(`[MedsService Primary Fail] ${targetModel} -> Thử sang gemini-3.5-flash:`, err1.message || err1);
       try {
-        // Tier 2: Thử model xoay vòng phụ có Search Grounding
         response = await ai.models.generateContent({
-          model: secondaryModel,
+          model: "gemini-3.5-flash",
           contents,
           config: {
             systemInstruction: MED_SYSTEM_INSTRUCTION,
-            tools: [{ googleSearch: {} }],
           },
         });
-        groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
       } catch (err2: any) {
-        console.warn(`[Tier 2 Fail] ${secondaryModel} -> Fallback sang ${config.gemini.fallbackModel} (No Grounding):`, err2.message || err2);
-        // Tier 3: Fallback sang model không dùng Search Grounding
-        response = await ai.models.generateContent({
-          model: config.gemini.fallbackModel,
-          contents,
-          config: {
-            systemInstruction: MED_SYSTEM_INSTRUCTION,
-          },
-        });
+        console.error("[MedsService Fatal Error]:", err2);
       }
     }
 
@@ -133,6 +124,14 @@ export class MedsService {
       console.warn("[MedsService] Lỗi parse JSON từ Gemini response:", e);
     }
 
+    // Kiểm tra guardrail tính hợp lệ y tế
+    if (parsedData?.isValidMed === false) {
+      throw new Error(
+        parsedData.errorMessage ||
+          "Hình ảnh không phải là vỏ hộp thuốc, vỉ thuốc hoặc sản phẩm y tế. Bác vui lòng chụp lại rõ nét bao bì thuốc để MediClear hỗ trợ chính xác nhé!"
+      );
+    }
+
     if (!parsedData) {
       parsedData = {
         name: query || "Thuốc từ ảnh chụp",
@@ -143,18 +142,46 @@ export class MedsService {
       };
     }
 
-    // Extract Grounding sources
-    const sources: GroundingSource[] = groundingChunks
-      .map((c: any) => c.web)
-      .filter((w: any) => w && w.uri)
-      .map((w: any) => ({
-        title: w.title || w.uri,
-        uri: w.uri,
-      }))
+    // Kết hợp nguồn từ Google Search Grounding và Custom Web Search Engine
+    const sourcesMap = new Map<string, string>();
+
+    // Nguồn từ Google native grounding
+    for (const chunk of groundingChunks) {
+      if (chunk.web?.uri) {
+        sourcesMap.set(chunk.web.uri, chunk.web.title || chunk.web.uri);
+      }
+    }
+
+    // Nguồn từ Custom Medical Web Search
+    for (const webItem of webResults) {
+      if (webItem.uri && !sourcesMap.has(webItem.uri)) {
+        sourcesMap.set(webItem.uri, webItem.title);
+      }
+    }
+
+    // Nếu nguồn chưa có (trường hợp người dùng chỉ chụp ảnh mà không nhập chữ),
+    // tự động tra cứu nhanh trên Tavily/Medical Search theo tên hoạt chất y tế (genericName)
+    const targetSearchDrug = parsedData?.genericName || parsedData?.name;
+    if (sourcesMap.size === 0 && targetSearchDrug) {
+      try {
+        const autoResults = await webSearchService.searchMedicine(targetSearchDrug);
+        for (const item of autoResults) {
+          if (item.uri && !sourcesMap.has(item.uri)) {
+            sourcesMap.set(item.uri, item.title);
+          }
+        }
+      } catch (e) {
+        console.warn("[MedsService] Không thể tự động lấy nguồn web:", e);
+      }
+    }
+
+    const sources: GroundingSource[] = Array.from(sourcesMap.entries())
+      .map(([uri, title]) => ({ title, uri }))
       .slice(0, 4);
 
     return {
       name: parsedData.name || query || "Thuốc cần tra cứu",
+      genericName: parsedData.genericName ? String(parsedData.genericName).replace(/\*\*/g, "").trim() : undefined,
       dosage: cleanItems(parsedData.dosage),
       purpose: cleanItems(parsedData.purpose),
       foodAdvice: cleanItems(parsedData.foodAdvice),

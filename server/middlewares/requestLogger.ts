@@ -1,15 +1,20 @@
 import type { Request, Response, NextFunction } from "express";
 
 export function requestLogger(req: Request, res: Response, next: NextFunction): void {
-  const start = Date.now();
   const { method, originalUrl } = req;
+
+  // CHỈ log các request thực sự đến Backend API (/api/...), bỏ qua toàn bộ file tĩnh Vite/HMR
+  if (!originalUrl.startsWith("/api")) {
+    return next();
+  }
+
+  const start = Date.now();
 
   // Log khi response kết thúc
   res.on("finish", () => {
     const duration = Date.now() - start;
     const statusCode = res.statusCode;
 
-    // Phân loại màu log nhẹ nhàng qua console
     const statusCategory = Math.floor(statusCode / 100);
     const logPrefix = statusCategory === 2 || statusCategory === 3 ? "✓" : "✗";
 

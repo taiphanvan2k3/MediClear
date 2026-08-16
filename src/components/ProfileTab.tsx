@@ -18,7 +18,10 @@ import {
   ShieldCheck,
   Cloud,
   Edit3,
-  UserCheck
+  UserCheck,
+  Smartphone,
+  IdCard,
+  QrCode
 } from "lucide-react";
 import { User } from "firebase/auth";
 import { UserProfile, USER_TITLE_OPTIONS, AI_TITLE_OPTIONS, PRESET_CONDITIONS } from "../types";
@@ -39,6 +42,8 @@ interface ProfileTabProps {
   isLargeText: boolean;
   onToggleLargeText: () => void;
   setAlertMessage: (msg: string | null) => void;
+  onOpenMedicalID?: () => void;
+  onOpenLockscreenWallpaper?: () => void;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
@@ -56,7 +61,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onLogout,
   isLargeText,
   onToggleLargeText,
-  setAlertMessage
+  setAlertMessage,
+  onOpenMedicalID,
+  onOpenLockscreenWallpaper
 }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
@@ -339,14 +346,59 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         {/* Action Button Inside Card */}
         <button
           onClick={() => setIsSettingsModalOpen(true)}
-          className="w-full py-2.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-2xl font-bold text-xs text-stone-700 flex items-center justify-center gap-2 transition-all active:scale-98"
+          className="w-full py-2.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-2xl font-bold text-xs text-stone-700 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
         >
           <Settings className="w-4 h-4 text-[#B85B43]" />
           <span>Cấu hình chi tiết Hồ sơ & Xưng hô</span>
         </button>
       </div>
 
-      {/* 4. Tùy chọn Giao diện & Ứng dụng */}
+      {/* 4. Trung Tâm Cứu Hộ & Thẻ Y Tế Màn Hình Khóa */}
+      <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-soft space-y-3.5">
+        <div className="flex items-center gap-2.5 border-b border-stone-100 pb-3">
+          <div className="p-2 bg-rose-50 text-rose-600 rounded-xl border border-rose-200">
+            <ShieldAlert className="w-5 h-5 text-rose-600" />
+          </div>
+          <div>
+            <h3 className={`${subTitleClass} text-stone-900 font-extrabold`}>Cứu Hộ & Thẻ Y Tế Cấp Cứu</h3>
+            <p className="text-[11px] text-stone-500 font-medium">
+              Bảo vệ người bệnh khi ra đường hoặc gặp sự cố bất ngờ
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+          <button
+            type="button"
+            onClick={onOpenLockscreenWallpaper}
+            className="p-3.5 bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] text-[#B85B43] rounded-2xl flex items-center gap-3 transition-all active:scale-98 cursor-pointer text-left shadow-2xs"
+          >
+            <div className="p-2.5 bg-white rounded-xl text-[#B85B43] shrink-0 shadow-2xs">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-xs text-stone-900 leading-tight">Xuất Hình Nền Khóa QR</h4>
+              <p className="text-[11px] text-[#B85B43] font-semibold">Cứu hộ ngay cả khi khóa máy</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenMedicalID}
+            className="p-3.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-2xl flex items-center gap-3 transition-all active:scale-98 cursor-pointer text-left shadow-2xs"
+          >
+            <div className="p-2.5 bg-white rounded-xl text-rose-600 shrink-0 border border-stone-200 shadow-2xs">
+              <IdCard className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-xs text-stone-900 leading-tight">Thẻ Y Tế Cấp Cứu</h4>
+              <p className="text-[11px] text-stone-500 font-semibold">Xem đơn thuốc & gọi 115</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* 5. Tùy chọn Giao diện & Ứng dụng */}
       <div className="bg-white border border-stone-200/90 rounded-3xl p-4.5 shadow-soft">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

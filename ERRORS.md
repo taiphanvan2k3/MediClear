@@ -11,6 +11,7 @@
 | 01 | 2026-08-16 | Lỗi xung đột lệnh `npx tsc --noEmit` trên môi trường npm | Thấp (Low) | ✅ Đã khắc phục |
 | 02 | 2026-08-16 | Gemini AI trả về Markdown Block quanh chuỗi JSON gây lỗi `JSON.parse` | Trung bình (Medium) | ✅ Đã khắc phục |
 | 03 | 2026-08-16 | Unhandled Exception làm sập server do thiếu Middleware bắt lỗi tập trung | Cao (High) | ✅ Đã khắc phục |
+| 04 | 2026-08-16 | Google Search Grounding trên Gemini 3.x Flash-Lite bị chặn mã `429 RESOURCE_EXHAUSTED` | Cao (High) | ✅ Đã khắc phục |
 
 ---
 
@@ -51,6 +52,20 @@
   - Tạo middleware [`server/middlewares/errorHandler.ts`](file:///d:/SelfLearning/AIRiser2026/MediClear/server/middlewares/errorHandler.ts) chuẩn Express `(err, req, res, next)`.
   - Trong các controller, khi gặp lỗi chỉ cần gọi `next(error)` để chuyển tiếp về error handler tập trung.
   - Tự động ẩn stack trace chi tiết khi chạy ở môi trường Production (`NODE_ENV === 'production'`).
+
+---
+
+### 📝 Sự cố #04: Google Search Grounding trên Gemini 3.x Flash-Lite bị chặn mã `429 RESOURCE_EXHAUSTED`
+
+* **Date**: `2026-08-16`
+* **Error / Symptom**: Khi gọi `POST /api/meds/search` dùng model `gemini-3.1-flash-lite` hoặc `gemini-3.5-flash-lite`, API trả về mã lỗi `429 RESOURCE_EXHAUSTED: You exceeded your current quota...` dù prompt thông thường không kèm tool vẫn chạy thành công.
+* **Root Cause**: Google áp dụng hạn mức tính năng riêng biệt (**Feature-Specific Quota**) cho Google Search Grounding. Trên dòng Flash-Lite thế hệ 3.x, Google giới hạn hạn mức tìm kiếm tức thời trên gói Free Tier rất thấp ($14 / 1,000 queries sau 5,000 queries/tháng), trong khi dòng `gemini-2.5-flash` và `gemini-2.5-flash-lite` được cấp Grounding miễn phí rộng rãi.
+* **Impact**: Người dùng không thể tra cứu thuốc khi cấu hình bắt buộc dùng 3.x Lite kèm Search Grounding.
+* **Resolution**:
+  - Thiết lập chiến lược **3-Tier Fallback**:
+    - **Tier 1**: `gemini-2.5-flash` với Search Grounding (Đầy đủ nguồn bài viết, hoạt động 100% trên Free Tier).
+    - **Tier 2**: `gemini-2.5-flash-lite` với Search Grounding (Xoay vòng tối ưu RPM).
+    - **Tier 3**: Tự động fallback sang `gemini-3.1-flash-lite` thuần suy luận y khoa không kèm search tool để đảm bảo hệ thống không bao giờ bị gián đoạn.
 
 ---
 

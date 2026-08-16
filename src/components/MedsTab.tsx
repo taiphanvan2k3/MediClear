@@ -1,5 +1,21 @@
 import React, { useState, useRef } from "react";
-import { Pill, Search, Clock, Calendar, Check, AlertTriangle, Activity, X, Camera, Image as ImageIcon, Loader2, ExternalLink, Sparkles } from "lucide-react";
+import {
+  Pill,
+  Search,
+  Clock,
+  Calendar,
+  Check,
+  AlertTriangle,
+  Activity,
+  X,
+  Camera,
+  Image as ImageIcon,
+  Loader2,
+  ExternalLink,
+  Sparkles,
+  HeartPulse,
+  Globe
+} from "lucide-react";
 
 interface MedsTabProps {
   userTitle: string;
@@ -17,7 +33,13 @@ interface MedsTabProps {
   }) => void;
 }
 
-export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeText, onSetCalendarReminder, onSaveMedSearchHistory }) => {
+export const MedsTab: React.FC<MedsTabProps> = ({
+  userTitle,
+  aiTitle,
+  isLargeText,
+  onSetCalendarReminder,
+  onSaveMedSearchHistory
+}) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const albumInputRef = useRef<HTMLInputElement>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -40,18 +62,30 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
   const descClass = isLargeText ? "text-sm" : "text-xs";
 
-  const renderFormattedList = (items: string[] | string | undefined, bulletColor: string = "bg-[#B85B43]", textColor: string = "text-stone-800") => {
+  const renderFormattedList = (
+    items: string[] | string | undefined,
+    bulletColor: string = "bg-[#B85B43]",
+    textColor: string = "text-stone-800"
+  ) => {
     if (!items) return null;
     let list: string[] = [];
 
     if (Array.isArray(items)) {
-      list = items.map(s => String(s).replace(/\*\*/g, '').replace(/\*/g, '').replace(/^[•\-\s]+/g, '').trim()).filter(Boolean);
-    } else if (typeof items === 'string') {
       list = items
-        .replace(/\*\*/g, '')
-        .replace(/\*/g, '')
+        .map((s) =>
+          String(s)
+            .replace(/\*\*/g, "")
+            .replace(/\*/g, "")
+            .replace(/^[•\-\s]+/g, "")
+            .trim()
+        )
+        .filter(Boolean);
+    } else if (typeof items === "string") {
+      list = items
+        .replace(/\*\*/g, "")
+        .replace(/\*/g, "")
         .split(/(?:\r?\n|•)/)
-        .map(s => s.replace(/^[•\-\s]+/g, '').trim())
+        .map((s) => s.replace(/^[•\-\s]+/g, "").trim())
         .filter(Boolean);
     }
 
@@ -60,7 +94,10 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
     return (
       <div className="space-y-1.5 mt-1.5">
         {list.map((item, idx) => (
-          <div key={idx} className="bg-white/90 border border-stone-200/80 rounded-xl p-2.5 text-xs sm:text-sm font-semibold flex items-start gap-2.5 shadow-2xs">
+          <div
+            key={idx}
+            className="bg-white/90 border border-stone-200/80 rounded-xl p-2.5 text-xs sm:text-sm font-semibold flex items-start gap-2.5 shadow-2xs"
+          >
             <span className={`w-2 h-2 rounded-full ${bulletColor} shrink-0 mt-1.5`} />
             <span className={`${textColor} leading-relaxed`}>{item}</span>
           </div>
@@ -89,7 +126,7 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
   const handleSearchMed = async (e?: React.FormEvent, customQuery?: string) => {
     if (e) e.preventDefault();
     const queryToSearch = customQuery !== undefined ? customQuery : medQuery;
-    
+
     if (!queryToSearch.trim() && !imagePreview) {
       setSearchError("Vui lòng nhập tên thuốc hoặc tải lên/chụp ảnh vỏ hộp thuốc!");
       return;
@@ -102,13 +139,13 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
       const response = await fetch("/api/meds/search", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           query: queryToSearch.trim() || undefined,
           imageBase64: imagePreview || undefined,
-          mimeType: imageMimeType,
-        }),
+          mimeType: imageMimeType
+        })
       });
 
       const data = await response.json();
@@ -121,7 +158,7 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
       if (onSaveMedSearchHistory) {
         onSaveMedSearchHistory({
           query: queryToSearch || "Ảnh vỏ hộp thuốc",
-          ...data,
+          ...data
         });
       }
     } catch (err: any) {
@@ -153,7 +190,7 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
             placeholder="Gõ tên thuốc (vd: Paracetamol, Amlodipin)..."
             className="w-full bg-transparent border-none text-stone-900 font-semibold text-sm placeholder-stone-400 focus:outline-none py-2 pr-2"
           />
-          
+
           {medQuery && (
             <button
               type="button"
@@ -165,22 +202,22 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
           )}
 
           {/* Hidden Direct Camera & Album Inputs */}
-          <input 
-            type="file" 
+          <input
+            type="file"
             ref={cameraInputRef}
-            accept="image/*" 
+            accept="image/*"
             capture="environment"
-            className="hidden" 
+            className="hidden"
             onChange={(e) => {
               handleImageSelect(e);
               setShowPhotoModal(false);
             }}
           />
-          <input 
-            type="file" 
+          <input
+            type="file"
             ref={albumInputRef}
-            accept="image/*" 
-            className="hidden" 
+            accept="image/*"
+            className="hidden"
             onChange={(e) => {
               handleImageSelect(e);
               setShowPhotoModal(false);
@@ -188,7 +225,7 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
           />
 
           {/* Single Clean Camera Icon Button */}
-          <button 
+          <button
             type="button"
             onClick={() => setShowPhotoModal(true)}
             className="p-2 text-stone-500 hover:text-[#B85B43] hover:bg-[#FBF0EC] rounded-xl cursor-pointer mr-1 transition-colors"
@@ -217,15 +254,13 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
         {imagePreview && (
           <div className="relative bg-[#FBF0EC] border border-[#F4DCD3] rounded-2xl p-2.5 flex items-center justify-between gap-3 animate-in fade-in duration-200">
             <div className="flex items-center gap-2.5 min-w-0">
-              <img 
-                src={imagePreview} 
-                alt="Ảnh hộp thuốc" 
-                className="w-12 h-12 rounded-xl object-cover border border-[#F4DCD3] shrink-0 shadow-2xs" 
+              <img
+                src={imagePreview}
+                alt="Ảnh hộp thuốc"
+                className="w-12 h-12 rounded-xl object-cover border border-[#F4DCD3] shrink-0 shadow-2xs"
               />
               <div className="min-w-0">
-                <span className="text-xs font-bold text-stone-900 block truncate">
-                  📷 Đã đính kèm ảnh vỏ/vỉ thuốc
-                </span>
+                <span className="text-xs font-bold text-stone-900 block truncate">📷 Đã đính kèm ảnh vỏ/vỉ thuốc</span>
                 <span className="text-[11px] font-medium text-[#B85B43]">
                   Sẵn sàng phân tích chữ trên hình ảnh với AI
                 </span>
@@ -249,7 +284,6 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
             <span>{searchError}</span>
           </div>
         )}
-
       </form>
 
       {/* 3. Màn hình Hướng dẫn khi CHƯA BẤM TÌM KIẾM */}
@@ -261,7 +295,8 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
           <div className="space-y-1.5">
             <h3 className="text-sm font-extrabold text-stone-900">Tra cứu thuốc an toàn bằng Gemini AI</h3>
             <p className="text-xs text-stone-600 max-w-xs mx-auto leading-relaxed font-medium">
-              {userTitle} có thể gõ tên thuốc hoặc bấm nút icon <Camera className="w-3.5 h-3.5 inline text-[#B85B43]" /> để chụp ảnh vỏ hộp thuốc. Trợ lý AI sẽ tự động tra cứu liều dùng & cảnh báo từ Google Search Grounding!
+              {userTitle} có thể gõ tên thuốc hoặc bấm nút icon <Camera className="w-3.5 h-3.5 inline text-[#B85B43]" />{" "}
+              để chụp ảnh vỏ hộp thuốc. Trợ lý AI sẽ tự động tra cứu liều dùng & cảnh báo từ Google Search!
             </p>
           </div>
         </div>
@@ -276,7 +311,7 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
           <div className="space-y-1">
             <h3 className="text-sm font-extrabold text-stone-900">Đang phân tích dữ liệu Dược học...</h3>
             <p className="text-xs text-stone-500 font-medium">
-              Kết nối Google Gemini AI & Google Search Grounding để tổng hợp thông tin mới nhất...
+              Kết nối Google Gemini AI & Google Search để tổng hợp thông tin mới nhất...
             </p>
           </div>
         </div>
@@ -285,25 +320,41 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
       {/* Thẻ Chi Tiết Thuốc Kết Quả Từ Gemini AI */}
       {selectedMed && !isSearching && (
         <div className="bg-white border border-stone-200/90 border-l-4 border-l-[#B85B43] rounded-2xl p-4 shadow-soft space-y-3.5 animate-in zoom-in-98 duration-200">
-          <div className="border-b border-stone-100 pb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-[#FBF0EC] text-[#B85B43] flex items-center justify-center shrink-0 border border-[#F4DCD3]">
+          <div className="border-b border-stone-100 pb-3">
+            <div className="flex items-start gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#FBF0EC] text-[#B85B43] flex items-center justify-center shrink-0 border border-[#F4DCD3] mt-0.5">
                 <Pill className="w-5 h-5 text-[#B85B43]" />
               </div>
-              <div className="min-w-0">
-                <h3 className={`${subTitleClass} text-stone-900 font-bold truncate`}>{selectedMed.name}</h3>
-                <span className="text-[11px] font-semibold text-[#B85B43] flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-[#B85B43]" /> Tra cứu bởi Gemini AI
-                </span>
+              <div className="min-w-0 flex-1">
+                <h3 className={`${subTitleClass} text-stone-900 font-extrabold leading-snug wrap-break-word`}>
+                  {selectedMed.name}
+                </h3>
+                <div className="flex items-center gap-2 flex-wrap pt-1.5">
+                  {selectedMed.genericName && (
+                    <span className="text-[11px] font-bold text-stone-700 bg-stone-100 px-2.5 py-0.5 rounded-md border border-stone-200">
+                      Hoạt chất: <span className="text-stone-900 font-extrabold">{selectedMed.genericName}</span>
+                    </span>
+                  )}
+                  <span className="text-[11px] font-semibold text-[#B85B43] flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-[#B85B43]" /> Tra cứu bởi Gemini AI
+                  </span>
+                </div>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-stone-800 bg-[#FBF0EC] border border-[#F4DCD3] px-2.5 py-1 rounded-full shrink-0">
-              <Check className="w-3.5 h-3.5 text-[#B85B43]" /> Kết quả chính xác
-            </span>
           </div>
 
+          {/* Mục Công dụng & Điều trị */}
+          {selectedMed.purpose && (
+            <div className="space-y-1 pt-1 border-t border-stone-100">
+              <h4 className="text-xs font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1">
+                <HeartPulse className="w-3.5 h-3.5 text-sky-600" /> Công dụng & Điều trị:
+              </h4>
+              {renderFormattedList(selectedMed.purpose, "bg-sky-500", "text-stone-900")}
+            </div>
+          )}
+
           {/* Mục Đơn vị / Liều dùng */}
-          <div className="space-y-1">
+          <div className="space-y-1 pt-1 border-t border-stone-100">
             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1">
               <Clock className="w-3.5 h-3.5 text-[#B85B43]" /> Liều dùng & Cách dùng:
             </h4>
@@ -317,6 +368,36 @@ export const MedsTab: React.FC<MedsTabProps> = ({ userTitle, aiTitle, isLargeTex
             </h4>
             {renderFormattedList(selectedMed.foodAdvice, "bg-amber-500", "text-stone-900")}
           </div>
+
+          {/* Mục Tóm tắt */}
+          {selectedMed.summary && (
+            <div className="bg-[#FBF0EC]/60 border border-[#F4DCD3] p-3 rounded-xl text-xs text-stone-800 leading-relaxed font-medium">
+              💡 <span className="font-bold text-[#B85B43]">Tóm tắt:</span> {selectedMed.summary}
+            </div>
+          )}
+
+          {/* Nguồn tài liệu y tế tham khảo (Tavily / Google) */}
+          {selectedMed.sources && selectedMed.sources.length > 0 && (
+            <div className="space-y-1.5 pt-2 border-t border-stone-100">
+              <h4 className="text-[11px] font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-emerald-600" /> Nguồn tài liệu y khoa tham khảo:
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMed.sources.map((s, idx) => (
+                  <a
+                    key={idx}
+                    href={s.uri}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors truncate max-w-full"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{s.title}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Nút Tạo Lịch Nhắc Nhở Google Calendar */}
           <div className="pt-2">

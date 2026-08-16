@@ -46,27 +46,27 @@
 ## 🆘 PHASE 3 — Hệ Sinh Thái Cấp Cứu SOS & Thẻ Y Tế Khóa Màn Hình
 > **Priority: 🔴 CRITICAL WOW FACTOR** — Giải quyết bài toán thực tế khi người già bất tỉnh ngoài đường
 
-- [ ] **F3.1** — Floating SOS Button trong App (Dành cho Người bệnh)
+- [x] **F3.1** — Floating SOS Button trong App (Dành cho Người bệnh)
   - Nút tròn đỏ nổi góc phải (trên BottomNav), hiệu ứng ripple pulse
-  - 1-touch → Gọi ngay `emergencyPhone` khi người già đang dùng app mà cảm thấy tức ngực/choáng váng
+  - 1-touch → Mở Trung tâm Cứu hộ SOS: Gọi ngay người thân, Gọi 115, Gửi SMS vị trí GPS, Thẻ Y Tế
   - Chưa cài SĐT SOS → Modal thiết lập nhanh 1-step
 
-- [ ] **F3.2** — 🖼️ Xuất Hình Nền Cấp Cứu Màn Hình Khóa (Lock Screen Medical Wallpaper Generator)
-  - Nút *"🖼️ Xuất ảnh Cấp cứu Màn hình khóa"* trong `ProfileTab.tsx`
-  - Tự động vẽ (HTML Canvas) tấm ảnh hình nền điện thoại tuyệt đẹp:
-    - Họ tên, Tuổi, Nhóm máu, Bệnh nền đang theo dõi
+- [x] **F3.2** — 🖼️ Xuất Hình Nền Cấp Cứu Màn Hình Khóa (Lock Screen Medical Wallpaper Generator)
+  - Nút *"🖼️ Xuất Hình Nền Khóa QR"* trong `ProfileTab.tsx` và `SOSButton.tsx`
+  - Tự động vẽ (HTML5 Canvas 1080x1920) ảnh hình nền điện thoại chuẩn y tế:
+    - Họ tên, Tuổi, Bệnh nền đang theo dõi
     - SĐT người thân khẩn cấp (In to, rõ ràng)
-    - **Mã QR Cứu hộ**: Cho phép người lạ/cấp cứu viên 115 dùng camera quét khi máy cụ bị khóa mật khẩu
-  - Nút 1-click tải ảnh về máy (Download Image) để cài làm hình nền khóa điện thoại
+    - **Mã QR Cứu hộ**: Cho phép người lạ/bác sĩ 115 dùng camera quét khi máy bị khóa màn hình
+    - 3 chủ đề màu sắc: Ấm áp (Terracotta), Tối hiện đại (Dark Slate), Khẩn cấp (Emergency Rose)
+  - Nút 1-click tải ảnh về máy (Download PNG) để cài làm hình nền khóa điện thoại
 
-- [ ] **F3.3** — 🚨 Thẻ Y Tế Cấp Cứu Trực Tuyến (Public Emergency Medical ID View)
-  - Khi người đi đường quét mã QR trên màn hình khóa → Mở trang web Thẻ Y Tế Cứu Hộ
+- [x] **F3.3** — 🚨 Thẻ Y Tế Cấp Cứu Trực Tuyến (Public Emergency Medical ID View)
+  - Modal Thẻ Y Tế Cứu Hộ chuẩn y tế
   - Hiển thị danh sách thuốc đang uống (tự động cập nhật từ các đơn thuốc AI đã quét)
   - Nút to 1-touch: [🚑 Gọi 115 Cấp cứu] và [📞 Gọi Người thân]
 
-- [ ] **F3.4** — Chia sẻ đơn thuốc & Tọa độ GPS cho người thân
-  - Nút "Gửi cho con/cháu" trong HistoryTab & SOS
-  - Tự động lấy tọa độ GPS (`navigator.geolocation`) kèm danh sách thuốc gửi qua SMS/Zalo
+- [x] **F3.4** — Chia sẻ đơn thuốc & Tọa độ GPS cho người thân
+  - Tự động lấy tọa độ GPS (`navigator.geolocation`) kèm danh sách thuốc gửi trực tiếp qua SMS cho người thân khẩn cấp
 
 ---
 

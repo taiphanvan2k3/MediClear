@@ -11,7 +11,10 @@ export const config = {
     apiKey: process.env.GEMINI_API_KEY || "",
     primaryGroundingModel: "gemini-2.5-flash",
     secondaryGroundingModel: "gemini-2.5-flash-lite",
-    fallbackModel: "gemini-2.5-flash-lite",
+    fallbackModel: "gemini-3.1-flash-lite",
+  },
+  tavily: {
+    apiKey: process.env.TAVILY_API_KEY || "",
   },
 } as const;
 

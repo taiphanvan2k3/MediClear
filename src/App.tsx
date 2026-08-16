@@ -29,6 +29,8 @@ import { MedsTab } from "./components/MedsTab";
 import { HistoryTab } from "./components/HistoryTab";
 import { ProfileTab } from "./components/ProfileTab";
 import { SOSButton } from "./components/SOSButton";
+import { MedicalIDModal } from "./components/MedicalIDModal";
+import { LockscreenWallpaperModal } from "./components/LockscreenWallpaperModal";
 
 let cachedAccessToken: string | null = null;
 
@@ -74,6 +76,8 @@ export default function App() {
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const [isMedicalIDOpen, setIsMedicalIDOpen] = useState<boolean>(false);
+  const [isLockscreenModalOpen, setIsLockscreenModalOpen] = useState<boolean>(false);
 
   // History Records List (Khám bệnh / Đơn thuốc)
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>(() => {
@@ -596,6 +600,8 @@ export default function App() {
             isLargeText={isLargeText}
             onToggleLargeText={toggleLargeText}
             setAlertMessage={setAlertMessage}
+            onOpenMedicalID={() => setIsMedicalIDOpen(true)}
+            onOpenLockscreenWallpaper={() => setIsLockscreenModalOpen(true)}
           />
         )}
       </main>
@@ -603,9 +609,12 @@ export default function App() {
       {/* Global Floating SOS Emergency Call Button */}
       <SOSButton
         userProfile={userProfile}
+        historyRecords={historyRecords}
         onSaveProfile={handleSaveProfile}
         isLargeText={isLargeText}
         setAlertMessage={setAlertMessage}
+        onOpenMedicalID={() => setIsMedicalIDOpen(true)}
+        onOpenLockscreenWallpaper={() => setIsLockscreenModalOpen(true)}
       />
 
       {/* Bottom Sticky Tab Navigation */}
@@ -613,6 +622,25 @@ export default function App() {
 
       {/* Lightbox Photo Viewer Modal */}
       <LightboxModal image={lightboxImage} onClose={() => setLightboxImage(null)} />
+
+      {/* Emergency Medical ID Modal */}
+      <MedicalIDModal
+        isOpen={isMedicalIDOpen}
+        onClose={() => setIsMedicalIDOpen(false)}
+        userProfile={userProfile}
+        historyRecords={historyRecords}
+        isLargeText={isLargeText}
+        setAlertMessage={setAlertMessage}
+      />
+
+      {/* Lockscreen Medical Wallpaper Generator Modal */}
+      <LockscreenWallpaperModal
+        isOpen={isLockscreenModalOpen}
+        onClose={() => setIsLockscreenModalOpen(false)}
+        userProfile={userProfile}
+        historyRecords={historyRecords}
+        isLargeText={isLargeText}
+      />
 
       {/* Alert & Confirmation Dialog Modals */}
       <AlertDialogs

@@ -67,6 +67,7 @@ export interface MedSearchHistoryItem {
   id: string;
   query: string;
   name: string;
+  genericName?: string;
   dosage: string[] | string;
   purpose: string[] | string;
   foodAdvice: string[] | string;
