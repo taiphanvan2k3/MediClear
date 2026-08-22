@@ -1,117 +1,95 @@
 # ✅ MediClear — Master Feature Checklist
 
-> Danh sách tính năng cần phát triển theo Spec-Driven Development  
-> Chọn các features bạn muốn làm → Implement từng cái một
+> Danh sách tính năng phát triển theo Spec-Driven Development  
+> Cập nhật tiến độ & Roadmap mới nhất
 
 ---
 
-## 🚀 PHASE 1 — Scan Đơn thuốc / Xét nghiệm THẬT bằng Gemini AI
+## 🚀 PHASE 1 — Scan Đơn thuốc & Xét nghiệm THẬT bằng Gemini Multimodal Vision AI
 > **Priority: 🔴 CRITICAL** — Tính năng cốt lõi, quyết định điểm Feasibility (40%)
 
-- [x] **F1.1** — Backend `POST /api/scan/prescription` — Gửi ảnh đơn thuốc → Gemini Vision → Trả JSON structured
-  - Tạo mới `server/routes/scan.ts`
-  - Register route trong `server/routes/index.ts`
-  - Prompt engineering cho Gemini đọc chữ viết tay + in
-  - Hỗ trợ gửi nhiều ảnh (multi-page prescription)
+- [x] **F1.1** — Backend `POST /api/scan/prescription` — Gửi ảnh đơn thuốc → Gemini Multimodal Vision → Trả JSON structured
+  - Hỗ trợ ảnh đơn thuốc viết tay + chữ in phức tạp
+  - Hỗ trợ gửi nhiều ảnh (multi-page prescription batch)
+  - Trích xuất danh sách thuốc, liều dùng, lưu ý ăn uống, chỉ số xét nghiệm, lời khuyên và cảnh báo
 
-- [x] **F1.2** — Frontend RecordsTab gọi API thật thay vì hardcode
-  - Sửa `RecordsTab.tsx`: Gọi `/api/scan/prescription` khi chụp/tải ảnh
-  - Hiển thị kết quả AI dynamic (danh sách thuốc, chỉ số xét nghiệm, cảnh báo)
-  - Mỗi thuốc trích xuất → Card riêng với nút "📅 Tạo lịch nhắc"
-  - Sửa `App.tsx`: `handleSaveResult()` lưu kết quả AI thật
+- [x] **F1.2** — Frontend RecordsTab kết nối TanStack Query & Gemini API
+  - Phân tích đa ảnh thực tế, hiển thị visual cards chuẩn y tế
+  - Nút 📅 "Tạo lịch nhắc" từng loại thuốc qua Google Calendar API
 
-- [x] **F1.3** — Type definitions cho Scan Result
-  - Thêm `PrescriptionScanResult`, `ScannedMedication`, `ScannedLabResult` vào `types.ts`
+- [x] **F1.3** — Type definitions & Stores
+  - Định nghĩa kiểu `PrescriptionScanResult`, `HistoryRecord`, `MedSearchHistoryItem` trong `types.ts`
+  - Quản lý trạng thái bằng Zustand Store (`useScanStore`, `useRecordsStore`) & TanStack Query mutations
 
 ---
 
-## 💊 PHASE 2 — Kiểm tra Tương tác Thuốc (Drug Interaction)
-> **Priority: 🟠 HIGH** — Yếu tố WOW cho Impact (30%) + Creativity (30%)
+## 💊 PHASE 2 — Tra Cứu Thuốc AI & Xuất Phiếu Tái Khám / Mua Thuốc
+> **Priority: 🔴 CRITICAL WOW FACTOR** — Giải quyết nỗi đau thực tế khi đi mua thuốc & tái khám
 
-- [ ] **F2.1** — Backend `POST /api/interactions/check` — Gửi danh sách thuốc → Gemini + Search → Cảnh báo tương tác
-  - Tạo mới `server/routes/interactions.ts`
-  - Gemini AI phân tích cặp thuốc, trả severity + khuyến nghị
+- [x] **F2.1** — Backend `POST /api/scan/medicine-info` — Tra cứu thông tin thuốc AI (Google Grounding)
+  - Tra cứu bằng tên thuốc hoặc chụp ảnh bao bì/hộp thuốc
+  - Giải thích công dụng, liều dùng, lưu ý ăn uống, dẫn nguồn tài liệu y khoa
 
-- [ ] **F2.2** — UI Drug Interaction Checker trong MedsTab hoặc section riêng
-  - Hiển thị danh sách thuốc đang dùng
-  - Nút "Kiểm tra tương tác" → Kết quả visual (xanh/vàng/đỏ)
-  - Banner cảnh báo mạnh nếu phát hiện tương tác nguy hiểm
+- [x] **F2.2** — Màn hình Push Page `PrescriptionSlipView` (Xuất Phiếu Đơn Thuốc Chuyên Dụng)
+  - **Chế độ 1: Ra tiệm mua thuốc (Dược sĩ)** — Tối ưu cho Dược sĩ kiểm tra tên thuốc, liều lượng, đóng gói
+  - **Chế độ 2: Bác sĩ tái khám (Bác sĩ)** — Tổng hợp tiền sử bệnh nền, thuốc đang uống, chẩn đoán trước đó
+  - Tải ảnh thẻ thuốc HD (PNG qua Canvas 1080p), In phiếu / PDF, Sao chép tin nhắn chuẩn Y tế gửi Zalo, Mã QR
 
-- [ ] **F2.3** — Auto-detect tương tác khi scan đơn thuốc mới
-  - Khi F1 trả kết quả → Tự so sánh thuốc mới vs thuốc cũ đang dùng
-  - Popup cảnh báo ngay nếu có conflict
-
----
-
-## 🆘 PHASE 3 — Hệ Sinh Thái Cấp Cứu SOS & Thẻ Y Tế Khóa Màn Hình
-> **Priority: 🔴 CRITICAL WOW FACTOR** — Giải quyết bài toán thực tế khi người già bất tỉnh ngoài đường
-
-- [x] **F3.1** — Floating SOS Button trong App (Dành cho Người bệnh)
-  - Nút tròn đỏ nổi góc phải (trên BottomNav), hiệu ứng ripple pulse
-  - 1-touch → Mở Trung tâm Cứu hộ SOS: Gọi ngay người thân, Gọi 115, Gửi SMS vị trí GPS, Thẻ Y Tế
-  - Chưa cài SĐT SOS → Modal thiết lập nhanh 1-step
-
-- [x] **F3.2** — 🖼️ Xuất Hình Nền Cấp Cứu Màn Hình Khóa (Lock Screen Medical Wallpaper Generator)
-  - Nút *"🖼️ Xuất Hình Nền Khóa QR"* trong `ProfileTab.tsx` và `SOSButton.tsx`
-  - Tự động vẽ (HTML5 Canvas 1080x1920) ảnh hình nền điện thoại chuẩn y tế:
-    - Họ tên, Tuổi, Bệnh nền đang theo dõi
-    - SĐT người thân khẩn cấp (In to, rõ ràng)
-    - **Mã QR Cứu hộ**: Cho phép người lạ/bác sĩ 115 dùng camera quét khi máy bị khóa màn hình
-    - 3 chủ đề màu sắc: Ấm áp (Terracotta), Tối hiện đại (Dark Slate), Khẩn cấp (Emergency Rose)
-  - Nút 1-click tải ảnh về máy (Download PNG) để cài làm hình nền khóa điện thoại
-
-- [x] **F3.3** — 🚨 Thẻ Y Tế Cấp Cứu Trực Tuyến (Public Emergency Medical ID View)
-  - Modal Thẻ Y Tế Cứu Hộ chuẩn y tế
-  - Hiển thị danh sách thuốc đang uống (tự động cập nhật từ các đơn thuốc AI đã quét)
-  - Nút to 1-touch: [🚑 Gọi 115 Cấp cứu] và [📞 Gọi Người thân]
-
-- [x] **F3.4** — Chia sẻ đơn thuốc & Tọa độ GPS cho người thân
-  - Tự động lấy tọa độ GPS (`navigator.geolocation`) kèm danh sách thuốc gửi trực tiếp qua SMS cho người thân khẩn cấp
+- [ ] **F2.3** — Cảnh báo Tương tác Thuốc tự động (Drug-Drug Interaction Checker)
+  - Backend `POST /api/interactions/check` kiểm tra xung đột thuốc nguy hiểm giữa đơn mới và thuốc cũ đang uống
 
 ---
 
-## ☁️ PHASE 4 — Cloud Sync toàn bộ dữ liệu
-> **Priority: 🟡 MEDIUM** — Đảm bảo dữ liệu không mất
+## 📱 PHASE 3 — PWA App Shortcuts & Cấp Cứu 1-Touch Từ Màn Hình Chính
+> **Priority: 🔴 CRITICAL WOW FACTOR** — Hỗ trợ gọi khẩn cấp trực tiếp từ màn hình điện thoại không cần mở app
 
-- [ ] **F4.1** — Firestore CRUD cho historyRecords & medSearchHistory
-  - Lưu lên Cloud khi thêm/sửa/xóa
-  - Sync ngược khi đăng nhập lại (merge localStorage + Cloud)
+- [x] **F3.1** — Cấu hình Web App Manifest (`manifest.json`)
+  - Tên ứng dụng, icon chuẩn y tế, theme color `#B85B43`, `display: standalone`
+  - Cài đặt PWA lên iPhone / Android (Add to Home Screen) chạy toàn màn hình như native app
 
-- [ ] **F4.2** — Lưu kết quả scan AI + ảnh gốc lên Firestore
-  - Collection `users/{uid}/scans/{scanId}`
-  - Ảnh lưu base64 (hoặc Firebase Storage nếu > 1MB)
+- [x] **F3.2** — PWA App Shortcuts (Quick Actions khi đè giữ icon App)
+  - 🚨 **Shortcut 1: "Gọi Người Thân SOS"** (`/?action=quick_sos`): Đè giữ icon MediClear ngoài màn hình chính → Bấm gọi ngay đến số người thân đã cài đặt trong 0.5s.
+  - 📷 **Shortcut 2: "Quét Đơn Thuốc"** (`/?action=scan`): Mở thẳng màn hình máy ảnh chụp đơn thuốc.
+  - 🔍 **Shortcut 3: "Tra Cứu Thuốc"** (`/?action=meds`): Mở thẳng ô tìm kiếm thuốc AI.
 
----
-
-## ✨ PHASE 5 — UX Polish & Accessibility
-> **Priority: 🟢 NICE-TO-HAVE** — Đánh bóng trải nghiệm
-
-- [ ] **F5.1** — Onboarding Welcome Flow (3 slide)
-  - Lần đầu mở app → Slide giới thiệu → Login → Setup profile nhanh
-  - Animation smooth với motion library
-
-- [ ] **F5.2** — PWA Support
-  - `manifest.json` + Service Worker
-  - "Add to Home Screen" prompt
-  - Offline viewing cho lịch sử đã lưu
-
-- [ ] **F5.3** — Voice Input cho người cao tuổi
-  - Nút 🎤 microphone trong MedsTab search bar
-  - Web Speech API (browser native, zero server cost)
-  - Người già nói tên thuốc thay vì gõ bàn phím
+- [x] **F3.3** — Service Worker & Offline Cache (`sw.js`)
+  - Caching tài nguyên tĩnh, tăng tốc độ mở ứng dụng tức thì và hỗ trợ xem dữ liệu ngoại tuyến
 
 ---
 
-## 📋 Tóm tắt nhanh
+## ☁️ PHASE 4 — Cloud Sync & Quản Lý Hồ Sơ
+> **Priority: 🟡 HIGH** — Bảo mật dữ liệu y tế
 
-| Phase | Số features | Effort | Điểm thi tăng |
-|-------|------------|--------|---------------|
-| P1 — Scan AI thật | 3 | ⏱️ Medium | 📈📈📈📈📈 (Feasibility 40%) |
-| P2 — Drug Interaction | 3 | ⏱️ Medium | 📈📈📈📈 (Creativity 30%) |
-| P3 — SOS & Lockscreen QR | 4 | ⏱️ Medium | 📈📈📈📈📈 (Impact 30% + WOW) |
-| P4 — Cloud Sync | 2 | ⏱️ Medium | 📈📈 |
-| P5 — UX Polish & Voice | 3 | ⏱️ Low | 📈📈📈 |
+- [x] **F4.1** — Google Firebase Authentication & Access Token Scope
+  - Đăng nhập 1-touch bằng Google, tự động cấp quyền ghi Google Calendar API
+
+- [x] **F4.2** — Firestore Cloud Sync cho User Profile & Hồ sơ bệnh nền
+  - Tự động lưu và đồng bộ cấu hình xưng hô (Bác ↔ Cháu), bệnh nền lên Cloud Firestore
+
+- [ ] **F4.3** — Firestore Sync 2 chiều cho Lịch sử đơn thuốc (History Records)
 
 ---
 
-> **Combo tối ưu tạo điểm WOW**: **P1 + P2 + P3 (Lockscreen Medical Wallpaper QR) + F5.3 (Voice Input)** = Chắc chắn đạt điểm số vượt trội từ BGK!
+## ✨ PHASE 5 — Accessibility & Trải Nghiệm Người Cao Tuổi
+> **Priority: 🟢 HIGH IMPACT** — Chuẩn WCAG AAA cho người lớn tuổi
+
+- [x] **F5.1** — Chế độ Cỡ Chữ To Dễ Đọc (`isLargeText`)
+  - Phóng to font chữ toàn bộ giao diện, độ tương phản cao, nút bấm to chống bấm nhầm
+
+- [x] **F5.2** — Xưng hô AI cá nhân hóa theo văn hóa gia đình Việt
+  - Tùy biến xưng hô dịu dàng, ân cần (Bác ↔ Cháu, Ông ↔ Cháu, Cô ↔ Cháu...)
+
+- [ ] **F5.3** — Voice Input cho người cao tuổi (Web Speech API)
+  - Nút 🎤 Microphone trong thanh tìm kiếm thuốc để đọc tên thuốc thay vì gõ phím
+
+---
+
+## 📋 Bảng Tổng Kết Trọng Trọng Tâm
+
+| Phase | Nội dung cốt lõi | Trạng thái |
+|---|---|:---:|
+| **P1** | Quét Đơn Thuốc Gemini Multimodal Vision AI | ✅ Hoàn thành |
+| **P2** | Tra Cứu Thuốc AI + Xuất Phiếu Mua Thuốc / Tái Khám | ✅ Hoàn thành |
+| **P3** | PWA Native App + App Shortcuts Gọi SOS 1-Touch | 🚀 Đang triển khai |
+| **P4** | Google Firebase Auth, Calendar API & Firestore Profile | ✅ Hoàn thành |
+| **P5** | Accessibility Cỡ Chữ To + Xưng Hô Dịu Dàng | ✅ Hoàn thành |

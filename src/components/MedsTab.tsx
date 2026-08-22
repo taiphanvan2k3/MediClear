@@ -4,9 +4,7 @@ import {
   Search,
   Clock,
   Calendar,
-  Check,
   AlertTriangle,
-  Activity,
   X,
   Camera,
   Image as ImageIcon,
@@ -16,367 +14,254 @@ import {
   HeartPulse,
   Globe
 } from "lucide-react";
+import { useAuthStore, useUIStore } from "../store";
+import { useMedicineSearch, useCalendarReminder, useAuthMutations } from "../hooks";
+import { MedicineInfoResult } from "../api/scanApi";
 
-interface MedsTabProps {
-  userTitle: string;
-  aiTitle: string;
-  isLargeText: boolean;
-  onSetCalendarReminder: (medName: string, time: string) => void;
-  onSaveMedSearchHistory?: (medData: {
-    query: string;
-    name: string;
-    dosage: string[] | string;
-    purpose: string[] | string;
-    foodAdvice: string[] | string;
-    summary?: string;
-    sources?: { title: string; uri: string }[];
-  }) => void;
-}
+export const MedsTab: React.FC = () => {
+  const userTitle = useAuthStore((state) => state.userProfile.userTitle) || "Bác";
+  const aiTitle = useAuthStore((state) => state.userProfile.aiTitle) || "Cháu";
+  const isLargeText = useUIStore((state) => state.isLargeText);
 
-export const MedsTab: React.FC<MedsTabProps> = ({
-  userTitle,
-  aiTitle,
-  isLargeText,
-  onSetCalendarReminder,
-  onSaveMedSearchHistory
-}) => {
+  // TanStack Query Mutations
+  const medicineSearchMutation = useMedicineSearch();
+  const { setCalendarReminder } = useCalendarReminder();
+  const { login: handleLogin } = useAuthMutations();
+
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const albumInputRef = useRef<HTMLInputElement>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [medQuery, setMedQuery] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string>("image/jpeg");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-
-  const [selectedMed, setSelectedMed] = useState<{
-    name: string;
-    dosage: string[] | string;
-    purpose: string[] | string;
-    foodAdvice: string[] | string;
-    summary?: string;
-    sources?: { title: string; uri: string }[];
-  } | null>(null);
+  const [selectedMed, setSelectedMed] = useState<MedicineInfoResult | null>(null);
 
   const titleClass = isLargeText ? "text-2xl font-bold tracking-tight" : "text-xl font-bold tracking-tight";
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
-  const descClass = isLargeText ? "text-sm" : "text-xs";
-
-  const renderFormattedList = (
-    items: string[] | string | undefined,
-    bulletColor: string = "bg-[#B85B43]",
-    textColor: string = "text-stone-800"
-  ) => {
-    if (!items) return null;
-    let list: string[] = [];
-
-    if (Array.isArray(items)) {
-      list = items
-        .map((s) =>
-          String(s)
-            .replace(/\*\*/g, "")
-            .replace(/\*/g, "")
-            .replace(/^[•\-\s]+/g, "")
-            .trim()
-        )
-        .filter(Boolean);
-    } else if (typeof items === "string") {
-      list = items
-        .replace(/\*\*/g, "")
-        .replace(/\*/g, "")
-        .split(/(?:\r?\n|•)/)
-        .map((s) => s.replace(/^[•\-\s]+/g, "").trim())
-        .filter(Boolean);
-    }
-
-    if (list.length === 0) return null;
-
-    return (
-      <div className="space-y-1.5 mt-1.5">
-        {list.map((item, idx) => (
-          <div
-            key={idx}
-            className="bg-white/90 border border-stone-200/80 rounded-xl p-2.5 text-xs sm:text-sm font-semibold flex items-start gap-2.5 shadow-2xs"
-          >
-            <span className={`w-2 h-2 rounded-full ${bulletColor} shrink-0 mt-1.5`} />
-            <span className={`${textColor} leading-relaxed`}>{item}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        setSearchError("Dung lượng ảnh vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.");
-        return;
-      }
-      setImageMimeType(file.type || "image/jpeg");
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
-        setSearchError(null);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    setImageMimeType(file.type || "image/jpeg");
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result as string);
+      setShowPhotoModal(false);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleSearchMed = async (e?: React.FormEvent, customQuery?: string) => {
-    if (e) e.preventDefault();
-    const queryToSearch = customQuery !== undefined ? customQuery : medQuery;
+  const handleSearchMedicine = (queryText?: string) => {
+    const textToSearch = queryText !== undefined ? queryText : medQuery;
+    if (!textToSearch.trim() && !imagePreview) return;
 
-    if (!queryToSearch.trim() && !imagePreview) {
-      setSearchError("Vui lòng nhập tên thuốc hoặc tải lên/chụp ảnh vỏ hộp thuốc!");
-      return;
+    let imageBase64Data: string | undefined = undefined;
+    if (imagePreview) {
+      imageBase64Data = imagePreview.includes("base64,") ? imagePreview.split("base64,")[1] : imagePreview;
     }
 
-    setIsSearching(true);
-    setSearchError(null);
-
-    try {
-      const response = await fetch("/api/meds/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          query: queryToSearch.trim() || undefined,
-          imageBase64: imagePreview || undefined,
-          mimeType: imageMimeType
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Không thể tra cứu thông tin thuốc lúc này.");
+    medicineSearchMutation.mutate(
+      {
+        query: textToSearch.trim(),
+        imageBase64: imageBase64Data,
+        mimeType: imageMimeType
+      },
+      {
+        onSuccess: (data) => {
+          setSelectedMed(data);
+        }
       }
-
-      setSelectedMed(data);
-      if (onSaveMedSearchHistory) {
-        onSaveMedSearchHistory({
-          query: queryToSearch || "Ảnh vỏ hộp thuốc",
-          ...data
-        });
-      }
-    } catch (err: any) {
-      console.error("Lỗi tra cứu thuốc từ AI:", err);
-      setSearchError(err.message || "Không thể kết nối đến máy chủ tra cứu thuốc. Vui lòng thử lại sau!");
-    } finally {
-      setIsSearching(false);
-    }
+    );
   };
+
+  const quickMeds = ["Panadol Extra", "Amlodipine 5mg", "Glucophage 500mg", "Lipitor 10mg", "Berberin"];
 
   return (
     <div className="space-y-4 px-4 py-4 animate-in fade-in duration-300 max-w-md mx-auto">
-      {/* 1. Header Trang Tra Thuốc */}
-      <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
+      {/* Hidden File Inputs */}
+      <input
+        type="file"
+        ref={cameraInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleImageSelect}
+      />
+      <input type="file" ref={albumInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
+
+      <div className="flex items-center gap-2 pb-1 border-b border-stone-200">
         <Pill className="w-6 h-6 text-[#B85B43]" />
         <h2 className={`${titleClass} text-stone-900 font-extrabold`}>Tra cứu thông tin thuốc</h2>
       </div>
 
-      {/* 2. Thanh Tìm Kiếm Thuốc & Tải Ảnh Vỏ Hộp */}
-      <form onSubmit={(e) => handleSearchMed(e)} className="space-y-2.5">
-        <div className="bg-white border border-stone-200/90 focus-within:border-[#B85B43] rounded-2xl p-1.5 shadow-soft flex items-center gap-2 transition-all">
-          <div className="pl-3 text-stone-400">
-            <Search className="w-5 h-5" />
-          </div>
-          <input
-            type="text"
-            value={medQuery}
-            onChange={(e) => setMedQuery(e.target.value)}
-            placeholder="Gõ tên thuốc (vd: Paracetamol, Amlodipin)..."
-            className="w-full bg-transparent border-none text-stone-900 font-semibold text-sm placeholder-stone-400 focus:outline-none py-2 pr-2"
-          />
-
-          {medQuery && (
-            <button
-              type="button"
-              onClick={() => setMedQuery("")}
-              className="p-1 text-stone-400 hover:text-stone-600 rounded-full mr-1 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Hidden Direct Camera & Album Inputs */}
-          <input
-            type="file"
-            ref={cameraInputRef}
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              handleImageSelect(e);
-              setShowPhotoModal(false);
-            }}
-          />
-          <input
-            type="file"
-            ref={albumInputRef}
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              handleImageSelect(e);
-              setShowPhotoModal(false);
-            }}
-          />
-
-          {/* Single Clean Camera Icon Button */}
+      {/* Box Tìm Kiếm Đa Phương Thức */}
+      <div className="bg-white border border-stone-200/90 rounded-2xl p-3 shadow-soft space-y-2.5">
+        <div className="flex items-center gap-2">
+          {/* Nút Chọn Ảnh */}
           <button
             type="button"
             onClick={() => setShowPhotoModal(true)}
-            className="p-2 text-stone-500 hover:text-[#B85B43] hover:bg-[#FBF0EC] rounded-xl cursor-pointer mr-1 transition-colors"
-            title="Chụp hoặc chọn ảnh vỏ hộp thuốc"
+            className="p-2.5 bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] text-[#B85B43] rounded-xl flex items-center justify-center shrink-0 transition-colors shadow-2xs cursor-pointer"
+            title="Chụp hoặc Tải ảnh hộp thuốc"
           >
             <Camera className="w-5 h-5 text-[#B85B43]" />
           </button>
 
+          {/* Ô Nhập Văn Bản */}
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={medQuery}
+              onChange={(e) => setMedQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearchMedicine();
+              }}
+              placeholder={`Nhập tên thuốc (${userTitle} uống thuốc gì?)...`}
+              className="w-full bg-stone-50 border border-stone-200/80 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-stone-900 placeholder-stone-400 focus:outline-none focus:border-[#B85B43] focus:bg-white transition-all pr-8"
+            />
+            {medQuery && (
+              <button
+                onClick={() => setMedQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Nút Tìm Kiếm AI */}
           <button
-            type="submit"
-            disabled={isSearching}
-            className="bg-[#B85B43] hover:bg-[#A34E37] disabled:bg-stone-300 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs transition-all active:scale-95 shadow-xs shrink-0 flex items-center gap-1.5"
+            disabled={medicineSearchMutation.isPending || (!medQuery.trim() && !imagePreview)}
+            onClick={() => handleSearchMedicine()}
+            className="p-2.5 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl flex items-center justify-center shrink-0 disabled:opacity-50 transition-all shadow-xs active:scale-95 cursor-pointer"
           >
-            {isSearching ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                <span>Đang tra...</span>
-              </>
+            {medicineSearchMutation.isPending ? (
+              <Loader2 className="w-5 h-5 animate-spin text-white" />
             ) : (
-              <span>Tra cứu AI</span>
+              <Search className="w-5 h-5" />
             )}
           </button>
         </div>
 
-        {/* Xem trước Ảnh Đã Chọn */}
+        {/* Xem trước ảnh đính kèm */}
         {imagePreview && (
-          <div className="relative bg-[#FBF0EC] border border-[#F4DCD3] rounded-2xl p-2.5 flex items-center justify-between gap-3 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <img
-                src={imagePreview}
-                alt="Ảnh hộp thuốc"
-                className="w-12 h-12 rounded-xl object-cover border border-[#F4DCD3] shrink-0 shadow-2xs"
-              />
-              <div className="min-w-0">
-                <span className="text-xs font-bold text-stone-900 block truncate">📷 Đã đính kèm ảnh vỏ/vỉ thuốc</span>
-                <span className="text-[11px] font-medium text-[#B85B43]">
-                  Sẵn sàng phân tích chữ trên hình ảnh với AI
-                </span>
-              </div>
+          <div className="flex items-center gap-2 p-2 bg-[#FBF0EC]/60 border border-[#F4DCD3] rounded-xl animate-in fade-in duration-200">
+            <img src={imagePreview} alt="Ảnh thuốc" className="w-10 h-10 object-cover rounded-lg border border-[#F4DCD3]" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold text-stone-800 truncate">Ảnh hộp thuốc đã chọn</p>
+              <p className="text-[10px] text-stone-500 font-medium">Sẽ được AI đọc nhận diện tự động</p>
             </div>
             <button
-              type="button"
               onClick={() => setImagePreview(null)}
-              className="p-1.5 bg-white text-stone-400 hover:text-rose-600 rounded-full border border-stone-200 shadow-2xs transition-colors shrink-0"
-              title="Xóa ảnh"
+              className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+              title="Gỡ ảnh"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* Cảnh báo lỗi nếu có */}
-        {searchError && (
-          <div className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 p-2.5 rounded-xl flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>{searchError}</span>
-          </div>
-        )}
-      </form>
-
-      {/* 3. Màn hình Hướng dẫn khi CHƯA BẤM TÌM KIẾM */}
-      {!selectedMed && !isSearching && (
-        <div className="bg-white border border-stone-200/90 rounded-2xl p-5 text-center space-y-3.5 shadow-soft">
-          <div className="w-12 h-12 bg-[#FBF0EC] text-[#B85B43] rounded-2xl flex items-center justify-center mx-auto border border-[#F4DCD3] shadow-2xs">
-            <Pill className="w-6 h-6 text-[#B85B43]" />
-          </div>
-          <div className="space-y-1.5">
-            <h3 className="text-sm font-extrabold text-stone-900">Tra cứu thuốc an toàn bằng Gemini AI</h3>
-            <p className="text-xs text-stone-600 max-w-xs mx-auto leading-relaxed font-medium">
-              {userTitle} có thể gõ tên thuốc hoặc bấm nút icon <Camera className="w-3.5 h-3.5 inline text-[#B85B43]" />{" "}
-              để chụp ảnh vỏ hộp thuốc. Trợ lý AI sẽ tự động tra cứu liều dùng & cảnh báo từ Google Search!
-            </p>
+        {/* Gợi Ý Thuốc Phổ Biến */}
+        <div className="pt-1">
+          <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block mb-1.5">
+            Gợi ý tra cứu nhanh:
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {quickMeds.map((med, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setMedQuery(med);
+                  handleSearchMedicine(med);
+                }}
+                className="text-[11px] font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 hover:text-stone-900 border border-stone-200/80 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+              >
+                {med}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Loading Pulse State */}
-      {isSearching && (
-        <div className="bg-white border border-[#F4DCD3] rounded-2xl p-6 text-center space-y-3 shadow-soft animate-pulse">
-          <div className="w-12 h-12 bg-[#FBF0EC] text-[#B85B43] rounded-2xl flex items-center justify-center mx-auto">
+      {/* Hiển Thị Trạng Thái Đang Tra Cứu */}
+      {medicineSearchMutation.isPending && (
+        <div className="bg-white border border-stone-200 rounded-2xl p-6 text-center space-y-3 shadow-soft animate-in fade-in duration-300">
+          <div className="w-12 h-12 bg-[#FBF0EC] text-[#B85B43] rounded-2xl flex items-center justify-center mx-auto border border-[#F4DCD3]">
             <Loader2 className="w-6 h-6 animate-spin text-[#B85B43]" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-extrabold text-stone-900">Đang phân tích dữ liệu Dược học...</h3>
+            <h3 className="font-extrabold text-sm text-stone-900">{aiTitle} đang tra cứu thông tin y khoa...</h3>
             <p className="text-xs text-stone-500 font-medium">
-              Kết nối Google Gemini AI & Google Search để tổng hợp thông tin mới nhất...
+              Đang đối chiếu dữ liệu dược thư y tế và cảnh báo an toàn cho {userTitle}
             </p>
           </div>
         </div>
       )}
 
-      {/* Thẻ Chi Tiết Thuốc Kết Quả Từ Gemini AI */}
-      {selectedMed && !isSearching && (
-        <div className="bg-white border border-stone-200/90 border-l-4 border-l-[#B85B43] rounded-2xl p-4 shadow-soft space-y-3.5 animate-in zoom-in-98 duration-200">
-          <div className="border-b border-stone-100 pb-3">
-            <div className="flex items-start gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#FBF0EC] text-[#B85B43] flex items-center justify-center shrink-0 border border-[#F4DCD3] mt-0.5">
-                <Pill className="w-5 h-5 text-[#B85B43]" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className={`${subTitleClass} text-stone-900 font-extrabold leading-snug wrap-break-word`}>
-                  {selectedMed.name}
-                </h3>
-                <div className="flex items-center gap-2 flex-wrap pt-1.5">
-                  {selectedMed.genericName && (
-                    <span className="text-[11px] font-bold text-stone-700 bg-stone-100 px-2.5 py-0.5 rounded-md border border-stone-200">
-                      Hoạt chất: <span className="text-stone-900 font-extrabold">{selectedMed.genericName}</span>
-                    </span>
-                  )}
-                  <span className="text-[11px] font-semibold text-[#B85B43] flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-[#B85B43]" /> Tra cứu bởi Gemini AI
-                  </span>
-                </div>
-              </div>
-            </div>
+      {/* Báo Lỗi Tra Cứu */}
+      {medicineSearchMutation.isError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-900 p-4 rounded-2xl text-xs font-semibold flex items-center gap-2.5 animate-in fade-in duration-200">
+          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+          <span>
+            {medicineSearchMutation.error instanceof Error
+              ? medicineSearchMutation.error.message
+              : "Đã xảy ra lỗi khi tìm kiếm thuốc. Vui lòng thử lại!"}
+          </span>
+        </div>
+      )}
+
+      {/* Kết Quả Tra Cứu Thuốc */}
+      {selectedMed && (
+        <div className="bg-white border border-stone-200/90 border-l-4 border-l-[#B85B43] rounded-2xl p-4 shadow-soft space-y-3.5 animate-in slide-in-from-bottom-3 duration-300">
+          {/* Tên Thuốc */}
+          <div className="border-b border-stone-100 pb-2.5 space-y-0.5">
+            <span className="text-[10px] font-extrabold text-[#B85B43] uppercase tracking-wider bg-[#FBF0EC] border border-[#F4DCD3] px-2 py-0.5 rounded-full inline-block">
+              Thông tin dược học chuẩn
+            </span>
+            <h3 className={`${subTitleClass} text-stone-900 font-extrabold pt-1`}>{selectedMed.name}</h3>
           </div>
 
-          {/* Mục Công dụng & Điều trị */}
+          {/* Công Dụng / Chỉ Định */}
           {selectedMed.purpose && (
-            <div className="space-y-1 pt-1 border-t border-stone-100">
+            <div className="space-y-1">
               <h4 className="text-xs font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1">
-                <HeartPulse className="w-3.5 h-3.5 text-sky-600" /> Công dụng & Điều trị:
+                <HeartPulse className="w-3.5 h-3.5 text-sky-600" /> Công dụng & Chỉ định:
               </h4>
-              {renderFormattedList(selectedMed.purpose, "bg-sky-500", "text-stone-900")}
+              <div className="bg-sky-50/80 p-2.5 rounded-xl border border-sky-100 text-xs font-semibold text-sky-950 leading-relaxed">
+                {Array.isArray(selectedMed.purpose) ? selectedMed.purpose.join(" • ") : selectedMed.purpose}
+              </div>
             </div>
           )}
 
-          {/* Mục Đơn vị / Liều dùng */}
+          {/* Liều Dùng */}
           <div className="space-y-1 pt-1 border-t border-stone-100">
             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-[#B85B43]" /> Liều dùng & Cách dùng:
+              <Clock className="w-3.5 h-3.5 text-[#B85B43]" /> Hướng dẫn liều lượng:
             </h4>
-            {renderFormattedList(selectedMed.dosage, "bg-[#B85B43]", "text-stone-900")}
+            <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-100 text-xs font-semibold text-stone-900 leading-relaxed">
+              {Array.isArray(selectedMed.dosage) ? selectedMed.dosage.join(" • ") : selectedMed.dosage}
+            </div>
           </div>
 
-          {/* Mục Cảnh báo ăn uống */}
+          {/* Cảnh Báo & Lưu Ý Ăn Uống */}
           <div className="space-y-1 pt-1 border-t border-stone-100">
             <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Lưu ý ăn uống & Cảnh báo:
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Lưu ý ăn uống & Cảnh báo an toàn:
             </h4>
-            {renderFormattedList(selectedMed.foodAdvice, "bg-amber-500", "text-stone-900")}
+            <div className="bg-amber-50/90 p-2.5 rounded-xl border border-amber-200 text-xs font-semibold text-amber-950 leading-relaxed">
+              {Array.isArray(selectedMed.foodAdvice) ? selectedMed.foodAdvice.join(" • ") : selectedMed.foodAdvice}
+            </div>
           </div>
 
-          {/* Mục Tóm tắt */}
+          {/* Tóm Tắt Dễ Hiểu Của AI */}
           {selectedMed.summary && (
             <div className="bg-[#FBF0EC]/60 border border-[#F4DCD3] p-3 rounded-xl text-xs text-stone-800 leading-relaxed font-medium">
-              💡 <span className="font-bold text-[#B85B43]">Tóm tắt:</span> {selectedMed.summary}
+              💡 <span className="font-bold text-[#B85B43]">Tóm tắt từ {aiTitle}:</span> {selectedMed.summary}
             </div>
           )}
 
-          {/* Nguồn tài liệu y tế tham khảo (Tavily / Google) */}
+          {/* Nguồn Tài Liệu Y Tế (Google Grounding) */}
           {selectedMed.sources && selectedMed.sources.length > 0 && (
             <div className="space-y-1.5 pt-2 border-t border-stone-100">
               <h4 className="text-[11px] font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1">
@@ -402,8 +287,8 @@ export const MedsTab: React.FC<MedsTabProps> = ({
           {/* Nút Tạo Lịch Nhắc Nhở Google Calendar */}
           <div className="pt-2">
             <button
-              onClick={() => onSetCalendarReminder(selectedMed.name, "08:00")}
-              className="w-full bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-xs active:scale-98"
+              onClick={() => setCalendarReminder(selectedMed.name, "08:00", () => handleLogin())}
+              className="w-full bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-xs active:scale-98 cursor-pointer"
             >
               <Calendar className="w-4 h-4 text-white" />
               <span>Tạo lịch nhắc uống thuốc hàng ngày (Google Calendar)</span>
@@ -429,7 +314,7 @@ export const MedsTab: React.FC<MedsTabProps> = ({
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="w-full py-3 bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all"
+                className="w-full py-3 bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
               >
                 <Camera className="w-4 h-4 text-white" />
                 <span>Chụp ảnh trực tiếp</span>
@@ -438,7 +323,7 @@ export const MedsTab: React.FC<MedsTabProps> = ({
               <button
                 type="button"
                 onClick={() => albumInputRef.current?.click()}
-                className="w-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
+                className="w-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <ImageIcon className="w-4 h-4 text-stone-600" />
                 <span>Chọn ảnh từ Album</span>
@@ -447,7 +332,7 @@ export const MedsTab: React.FC<MedsTabProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPhotoModal(false)}
-                className="w-full py-2 text-stone-500 font-semibold text-xs hover:text-stone-700 transition-colors"
+                className="w-full py-2 text-stone-500 font-semibold text-xs hover:text-stone-700 transition-colors cursor-pointer"
               >
                 Hủy
               </button>

@@ -11,7 +11,6 @@ async function bootstrap() {
     server = app.listen(config.port, config.host, () => {
       console.log(`\n🌿 MediClear Server đang chạy tại http://${config.host}:${config.port}`);
       console.log(`⚡ Môi trường: ${config.nodeEnv.toUpperCase()}`);
-      console.log(`🩺 API Health: http://localhost:${config.port}/api/health\n`);
     });
 
     // Graceful Shutdown

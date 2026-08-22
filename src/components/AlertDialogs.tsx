@@ -1,30 +1,22 @@
 import React, { useEffect } from "react";
 import { HelpCircle, CheckCircle2, X } from "lucide-react";
+import { useUIStore } from "../store";
 
-interface AlertDialogsProps {
-  alertMessage: string | null;
-  onCloseAlert: () => void;
-  confirmDialog: { message: string; onConfirm: () => void } | null;
-  onCloseConfirm: () => void;
-  aiTitle: string;
-  userTitle: string;
-}
+export const AlertDialogs: React.FC = () => {
+  const alertMessage = useUIStore((state) => state.alertMessage);
+  const setAlertMessage = useUIStore((state) => state.setAlertMessage);
+  const confirmDialog = useUIStore((state) => state.confirmDialog);
+  const setConfirmDialog = useUIStore((state) => state.setConfirmDialog);
 
-export const AlertDialogs: React.FC<AlertDialogsProps> = ({
-  alertMessage,
-  onCloseAlert,
-  confirmDialog,
-  onCloseConfirm
-}) => {
   // Tự động ẩn thông báo Toast sau 3.5 giây
   useEffect(() => {
     if (alertMessage) {
       const timer = setTimeout(() => {
-        onCloseAlert();
+        setAlertMessage(null);
       }, 3500);
       return () => clearTimeout(timer);
     }
-  }, [alertMessage, onCloseAlert]);
+  }, [alertMessage, setAlertMessage]);
 
   return (
     <>
@@ -40,8 +32,8 @@ export const AlertDialogs: React.FC<AlertDialogsProps> = ({
             </p>
           </div>
           <button
-            onClick={onCloseAlert}
-            className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-400 hover:text-stone-700 flex items-center justify-center shrink-0 transition-colors active:scale-95"
+            onClick={() => setAlertMessage(null)}
+            className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-400 hover:text-stone-700 flex items-center justify-center shrink-0 transition-colors active:scale-95 cursor-pointer"
             title="Đóng thông báo"
             aria-label="Đóng thông báo"
           >
@@ -63,8 +55,8 @@ export const AlertDialogs: React.FC<AlertDialogsProps> = ({
             </div>
             <div className="grid grid-cols-2 gap-2.5 pt-2">
               <button
-                onClick={onCloseConfirm}
-                className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 px-3 rounded-xl transition-all text-xs sm:text-sm active:scale-98"
+                onClick={() => setConfirmDialog(null)}
+                className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 px-3 rounded-xl transition-all text-xs sm:text-sm active:scale-98 cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -72,7 +64,7 @@ export const AlertDialogs: React.FC<AlertDialogsProps> = ({
                 onClick={() => {
                   confirmDialog.onConfirm();
                 }}
-                className="w-full bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold py-3 px-3 rounded-xl shadow-xs transition-all active:scale-98 text-xs sm:text-sm"
+                className="w-full bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold py-3 px-3 rounded-xl shadow-xs transition-all active:scale-98 text-xs sm:text-sm cursor-pointer"
               >
                 Đồng ý thực hiện
               </button>

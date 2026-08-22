@@ -10,61 +10,46 @@ import {
   Calendar,
   UserCheck,
   Building,
-  Info,
   Trash2,
-  Plus,
   LogIn,
   ShieldCheck,
-  Cloud,
-  Lock,
   Sparkles,
-  Check,
-  AlertTriangle,
-  Activity,
   ExternalLink,
   Search,
-  Filter,
-  X,
   RotateCcw,
-  CheckCircle2,
   HeartPulse,
   Globe
 } from "lucide-react";
-import { User } from "firebase/auth";
 import { HistoryRecord, MedSearchHistoryItem } from "../types";
+import { PrescriptionSlipView } from "./PrescriptionSlipView";
+import { useRecordsStore, useAuthStore, useUIStore } from "../store";
+import { useCalendarReminder, useAuthMutations } from "../hooks";
 
-interface HistoryTabProps {
-  user: User | null;
-  onLogin: () => void;
-  historyRecords: HistoryRecord[];
-  medSearchHistory: MedSearchHistoryItem[];
-  onDeleteRecord: (id: string) => void;
-  onDeleteMedSearchItem: (id: string) => void;
-  onOpenLightbox: (url: string, title: string) => void;
-  userTitle: string;
-  aiTitle: string;
-  isLargeText: boolean;
-  onAddPhotosToRecord: (recordId: string, files: FileList | File[]) => void;
-  onSetCalendarReminder: (medName: string, time: string) => void;
-}
+export const HistoryTab: React.FC = () => {
+  // Records Store (Pure Client State)
+  const historyRecords = useRecordsStore((state) => state.historyRecords);
+  const medSearchHistory = useRecordsStore((state) => state.medSearchHistory);
+  const deleteRecord = useRecordsStore((state) => state.deleteRecord);
+  const deleteMedSearchItem = useRecordsStore((state) => state.deleteMedSearchItem);
 
-export const HistoryTab: React.FC<HistoryTabProps> = ({
-  user,
-  onLogin,
-  historyRecords,
-  medSearchHistory,
-  onDeleteRecord,
-  onDeleteMedSearchItem,
-  onOpenLightbox,
-  userTitle,
-  aiTitle,
-  isLargeText,
-  onAddPhotosToRecord,
-  onSetCalendarReminder
-}) => {
+  // Auth Store
+  const user = useAuthStore((state) => state.user);
+  const userProfile = useAuthStore((state) => state.userProfile);
+
+  // TanStack Query Mutations
+  const { login: onLogin } = useAuthMutations();
+  const { setCalendarReminder } = useCalendarReminder();
+
+  // UI Store
+  const isLargeText = useUIStore((state) => state.isLargeText);
+  const setAlertMessage = useUIStore((state) => state.setAlertMessage);
+  const setConfirmDialog = useUIStore((state) => state.setConfirmDialog);
+  const onOpenLightbox = (url: string, title: string) => useUIStore.getState().setLightboxImage({ url, title });
+
   const [activeSubTab, setActiveSubTab] = useState<"RECORDS" | "MEDS">("RECORDS");
   const [selectedRecord, setSelectedRecord] = useState<HistoryRecord | null>(null);
   const [selectedMedItem, setSelectedMedItem] = useState<MedSearchHistoryItem | null>(null);
+  const [viewingPrescriptionSlipRecord, setViewingPrescriptionSlipRecord] = useState<HistoryRecord | null>(null);
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,19 +57,36 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
   const titleClass = isLargeText ? "text-2xl font-bold tracking-tight" : "text-xl font-bold tracking-tight";
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
-  const bodyClass = isLargeText ? "text-base leading-relaxed" : "text-sm leading-relaxed";
 
-  const handleFileInputChange = (recordId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      onAddPhotosToRecord(recordId, e.target.files);
-    }
+  const handleDeleteRecordWithConfirm = (id: string) => {
+    const userGreeting = userProfile.userTitle || "Bác";
+    setConfirmDialog({
+      message: `${userGreeting} có chắc chắn muốn xóa bản ghi lịch sử này không?`,
+      onConfirm: () => {
+        deleteRecord(id);
+        setConfirmDialog(null);
+        setAlertMessage("Đã xóa bản ghi khỏi lịch sử lưu trữ.");
+      }
+    });
+  };
+
+  const handleDeleteMedSearchWithConfirm = (id: string) => {
+    const userGreeting = userProfile.userTitle || "Bác";
+    setConfirmDialog({
+      message: `${userGreeting} có chắc muốn xóa lịch sử tra cứu thuốc này không?`,
+      onConfirm: () => {
+        deleteMedSearchItem(id);
+        setConfirmDialog(null);
+        setAlertMessage("Đã xóa mục khỏi lịch sử tra cứu thuốc.");
+      }
+    });
   };
 
   // Filtered Medical Records
   const filteredRecords = historyRecords.filter((record) => {
     // 1. Status Filter
     if (recordFilter === "WARNING" && record.badgeType !== "warning") return false;
-    if (recordFilter === "SUCCESS" && record.badgeType !== "success" && record.badgeType !== "normal") return false;
+    if (recordFilter === "SUCCESS" && record.badgeType !== "info") return false;
 
     // 2. Search Query Filter
     if (!searchQuery.trim()) return true;
@@ -121,6 +123,20 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     return matchName || matchQuery || matchDosage || matchFood;
   });
 
+  // 1. PUSH SCREEN: Màn hình Phiếu Đơn Thuốc Mua Thuốc & Tái Khám
+  if (viewingPrescriptionSlipRecord) {
+    return (
+      <PrescriptionSlipView
+        record={viewingPrescriptionSlipRecord}
+        userProfile={userProfile}
+        onBack={() => setViewingPrescriptionSlipRecord(null)}
+        isLargeText={isLargeText}
+        setAlertMessage={setAlertMessage}
+        onOpenLightbox={onOpenLightbox}
+      />
+    );
+  }
+
   // Unauthenticated screen
   if (!user) {
     return (
@@ -155,8 +171,8 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           </div>
 
           <button
-            onClick={onLogin}
-            className="w-full flex items-center justify-center gap-2 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl py-3.5 px-4 font-bold text-sm transition-all shadow-xs active:scale-98"
+            onClick={() => onLogin()}
+            className="w-full flex items-center justify-center gap-2 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl py-3.5 px-4 font-bold text-sm transition-all shadow-xs active:scale-98 cursor-pointer"
           >
             <LogIn className="w-5 h-5 text-white" />
             Đăng nhập bằng Google
@@ -179,7 +195,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       <div className="space-y-4 px-4 py-4 animate-in slide-in-from-right-4 duration-300 max-w-md mx-auto">
         <button
           onClick={() => setSelectedRecord(null)}
-          className="flex items-center gap-1.5 text-xs font-bold text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-3 py-1.5 rounded-xl transition-all"
+          className="flex items-center gap-1.5 text-xs font-bold text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-3 py-1.5 rounded-xl transition-all cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Quay lại Danh sách Lịch sử</span>
@@ -192,9 +208,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                 className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                   selectedRecord.badgeType === "warning"
                     ? "bg-amber-100 text-amber-900 border border-amber-300"
-                    : selectedRecord.badgeType === "success"
-                      ? "bg-stone-100 text-stone-900 border border-stone-300"
-                      : "bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3]"
+                    : "bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3]"
                 }`}
               >
                 {selectedRecord.badge}
@@ -210,15 +224,25 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
             <button
               onClick={() => {
-                onDeleteRecord(selectedRecord.id);
+                handleDeleteRecordWithConfirm(selectedRecord.id);
                 setSelectedRecord(null);
               }}
-              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-200 shrink-0"
+              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-200 shrink-0 cursor-pointer"
               title="Xóa bản ghi này"
             >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
+
+          {/* NÚT MỞ MÀN HÌNH PHIẾU MUA THUỐC & TÁI KHÁM */}
+          <button
+            type="button"
+            onClick={() => setViewingPrescriptionSlipRecord(selectedRecord)}
+            className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold py-3 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs active:scale-98 cursor-pointer"
+          >
+            <Pill className="w-4 h-4 text-white shrink-0" />
+            <span>Xuất Phiếu Mua Thuốc & Gửi Bác Sĩ Tái Khám</span>
+          </button>
 
           {(selectedRecord.facility || selectedRecord.doctor) && (
             <div className="bg-stone-50 rounded-xl p-2.5 border border-stone-100 text-xs font-medium text-stone-700 space-y-1">
@@ -312,7 +336,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       <div className="space-y-4 px-4 py-4 animate-in slide-in-from-right-4 duration-300 max-w-md mx-auto">
         <button
           onClick={() => setSelectedMedItem(null)}
-          className="flex items-center gap-1.5 text-xs font-bold text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-3 py-1.5 rounded-xl transition-all"
+          className="flex items-center gap-1.5 text-xs font-bold text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-3 py-1.5 rounded-xl transition-all cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Quay lại Lịch sử tra cứu thuốc</span>
@@ -342,10 +366,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
             <button
               onClick={() => {
-                onDeleteMedSearchItem(selectedMedItem.id);
+                handleDeleteMedSearchWithConfirm(selectedMedItem.id);
                 setSelectedMedItem(null);
               }}
-              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-200 shrink-0"
+              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-200 shrink-0 cursor-pointer"
               title="Xóa lịch sử tra cứu này"
             >
               <Trash2 className="w-4 h-4" />
@@ -377,7 +401,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           {/* Mục Cảnh báo */}
           <div className="space-y-1 pt-1 border-t border-stone-100">
             <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Lưu ý ăn uống & Cảnh báo:
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Lưu ý ăn uống & Cảnh báo:
             </h4>
             <div className="bg-amber-50 p-2.5 rounded-xl border border-amber-200 text-xs font-semibold text-amber-950 leading-relaxed">
               {Array.isArray(selectedMedItem.foodAdvice)
@@ -418,8 +442,8 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
           <div className="pt-2">
             <button
-              onClick={() => onSetCalendarReminder(selectedMedItem.name, "08:00")}
-              className="w-full bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-xs active:scale-98"
+              onClick={() => setCalendarReminder(selectedMedItem.name, "08:00", () => onLogin())}
+              className="w-full bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-xs active:scale-98 cursor-pointer"
             >
               <Calendar className="w-4 h-4 text-white" />
               <span>Tạo lịch nhắc uống thuốc hàng ngày (Google Calendar)</span>
@@ -445,7 +469,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             setActiveSubTab("RECORDS");
             setSearchQuery("");
           }}
-          className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             activeSubTab === "RECORDS"
               ? "bg-[#B85B43] text-white shadow-xs"
               : "text-stone-700 hover:text-stone-900 hover:bg-stone-200/50"
@@ -460,7 +484,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             setActiveSubTab("MEDS");
             setSearchQuery("");
           }}
-          className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             activeSubTab === "MEDS"
               ? "bg-[#B85B43] text-white shadow-xs"
               : "text-stone-700 hover:text-stone-900 hover:bg-stone-200/50"
@@ -488,41 +512,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="p-1 text-stone-400 hover:text-stone-600 rounded-full mr-1 transition-colors"
+              className="p-1 text-stone-400 hover:text-stone-600 rounded-full mr-1 transition-colors cursor-pointer"
               title="Xóa tìm kiếm"
             >
-              <X className="w-4 h-4" />
+              ✕
             </button>
           )}
         </div>
-
-        {/* Status Filter Chips for RECORDS tab */}
-        {activeSubTab === "RECORDS" && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-            <span className="text-[11px] font-bold text-stone-400 shrink-0">Lọc:</span>
-            {[
-              { id: "ALL", label: "Tất cả", icon: <Filter className="w-3.5 h-3.5" /> },
-              { id: "WARNING", label: "Cần chú ý", icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> },
-              { id: "SUCCESS", label: "Bình thường", icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> }
-            ].map((chip) => {
-              const isActive = recordFilter === chip.id;
-              return (
-                <button
-                  key={chip.id}
-                  onClick={() => setRecordFilter(chip.id as any)}
-                  className={`px-2.5 py-1 rounded-full font-bold text-[11px] shrink-0 transition-all border flex items-center gap-1.5 ${
-                    isActive
-                      ? "bg-[#B85B43] text-white border-[#B85B43] shadow-xs"
-                      : "bg-white text-stone-700 border-stone-200 hover:bg-stone-100"
-                  }`}
-                >
-                  <span className={isActive ? "text-white" : ""}>{chip.icon}</span>
-                  <span>{chip.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Subtab 1: Medical Records List */}
@@ -542,7 +538,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     setSearchQuery("");
                     setRecordFilter("ALL");
                   }}
-                  className="inline-flex items-center gap-1.5 text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-3 py-1.5 rounded-xl font-bold text-xs transition-all mt-1"
+                  className="inline-flex items-center gap-1.5 text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-3 py-1.5 rounded-xl font-bold text-xs transition-all mt-1 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Xóa bộ lọc
@@ -554,7 +550,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               <div
                 key={record.id}
                 onClick={() => setSelectedRecord(record)}
-                className="bg-white border border-stone-200/90 hover:border-[#B85B43] rounded-2xl p-3.5 shadow-soft hover:shadow-md transition-all cursor-pointer group space-y-2"
+                className="bg-white border border-stone-200/90 hover:border-[#B85B43] rounded-2xl p-3.5 shadow-soft hover:shadow-md transition-all cursor-pointer group space-y-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 min-w-0">
@@ -577,6 +573,23 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   <ChevronRight className="w-5 h-5 text-stone-400 group-hover:translate-x-1 transition-transform shrink-0 mt-1" />
                 </div>
                 <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed font-medium">{record.summary}</p>
+
+                <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                  <span className="text-[11px] text-stone-500 font-semibold">
+                    {record.details?.length || 0} mục thông tin
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingPrescriptionSlipRecord(record);
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs"
+                  >
+                    <Pill className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Phiếu mua thuốc & Tái khám</span>
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -597,7 +610,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="inline-flex items-center gap-1.5 text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-3 py-1.5 rounded-xl font-bold text-xs transition-all mt-1"
+                  className="inline-flex items-center gap-1.5 text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-3 py-1.5 rounded-xl font-bold text-xs transition-all mt-1 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Xóa từ khóa tìm kiếm

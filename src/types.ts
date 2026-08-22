@@ -5,11 +5,9 @@ export interface UserProfile {
   nickname: string;
   age: string;
   birthYear: string;
-  userTitle: string; // e.g. "Bác", "Ông", "Bà", "Chú", "Cô", "Anh/Chị", "Tôi"
+  userTitle: string; // e.g. "Bác", "Ông", "Bà", "Chú", "Cô", "Anh", "Chị"
   aiTitle: string;   // e.g. "Cháu", "Con", "Trợ lý AI", "Em", "Tôi"
   conditions: string[];
-  emergencyName: string;
-  emergencyPhone: string;
 }
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -18,9 +16,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   birthYear: '',
   userTitle: 'Bác',
   aiTitle: 'Cháu',
-  conditions: [],
-  emergencyName: '',
-  emergencyPhone: ''
+  conditions: []
 };
 
 export const USER_TITLE_OPTIONS = ['Bác', 'Ông', 'Bà', 'Chú', 'Cô', 'Anh', 'Chị'];
@@ -46,22 +42,19 @@ export interface HistoryRecord {
   id: string;
   title: string;
   date: string;
-  type: 'prescription' | 'lab';
+  type: 'prescription' | 'lab' | 'consultation';
   badge: string;
-  badgeType: 'warning' | 'success' | 'info';
+  badgeType: 'warning' | 'info';
   summary: string;
+  imageUrl?: string;
+  imageUrls?: string[];
   facility?: string;
   doctor?: string;
   diagnosis?: string;
   details: HistoryItemDetail[];
-  advice: string;
+  advice?: string;
   warning?: string;
-  note?: string;
-  imageUrls?: string[];
-  imageUrl?: string; // fallback for legacy
 }
-
-export const DEFAULT_HISTORY_RECORDS: HistoryRecord[] = [];
 
 export interface MedSearchHistoryItem {
   id: string;
@@ -77,34 +70,31 @@ export interface MedSearchHistoryItem {
   timestamp: number;
 }
 
-export const DEFAULT_MED_SEARCH_HISTORY: MedSearchHistoryItem[] = [];
-
-export interface ScannedMedication {
-  name: string;
-  dosage: string;
-  purpose: string;
-  foodAdvice: string;
-  reminderTime?: string;
-}
-
-export interface ScannedLabResult {
-  label: string;
-  value: string;
-  status: 'normal' | 'high' | 'warning';
-  advice?: string;
-}
-
 export interface PrescriptionScanResult {
-  title: string;
-  type: 'prescription' | 'lab';
+  title?: string;
+  type?: 'prescription' | 'lab' | 'consultation';
+  badge?: string;
+  badgeType?: 'warning' | 'info';
+  summary: string;
   facility?: string;
   doctor?: string;
   diagnosis?: string;
-  badge: string;
-  badgeType: 'info' | 'warning' | 'success';
-  summary: string;
-  medications: ScannedMedication[];
-  labResults: ScannedLabResult[];
-  advice: string;
+  medications?: {
+    name: string;
+    dosage: string;
+    purpose?: string;
+    foodAdvice?: string;
+    reminderTime?: string;
+  }[];
+  labResults?: {
+    label: string;
+    value: string;
+    status?: 'normal' | 'high' | 'warning';
+    advice?: string;
+  }[];
+  advice?: string;
   warning?: string;
 }
+
+export const DEFAULT_HISTORY_RECORDS: HistoryRecord[] = [];
+export const DEFAULT_MED_SEARCH_HISTORY: MedSearchHistoryItem[] = [];

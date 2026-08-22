@@ -1,19 +1,14 @@
 import React from "react";
 import { Stethoscope, LogIn, User as UserIcon } from "lucide-react";
-import { User } from "firebase/auth";
-import { TabType } from "../types";
+import { useAuthStore, useUIStore } from "../store";
+import { useAuthMutations } from "../hooks";
 
-interface NavbarProps {
-  user: User | null;
-  userTitle: string;
-  isLargeText?: boolean;
-  onToggleLargeText?: () => void;
-  onLogin: () => void;
-  onLogout: () => void;
-  activeTab?: TabType;
-}
+export const Navbar: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+  const userTitle = useAuthStore((state) => state.userProfile.userTitle) || "Bác";
+  const activeTab = useUIStore((state) => state.activeTab);
+  const { login: handleLogin } = useAuthMutations();
 
-export const Navbar: React.FC<NavbarProps> = ({ user, userTitle, onLogin, onLogout, activeTab }) => {
   const showNavbarLoginButton = !user && activeTab !== "PROFILE" && activeTab !== "HISTORY";
 
   return (
@@ -32,7 +27,6 @@ export const Navbar: React.FC<NavbarProps> = ({ user, userTitle, onLogin, onLogo
 
         {/* User Account Area */}
         <div className="flex items-center gap-2">
-
           {user ? (
             /* User Profile Avatar & Name Chip */
             <div className="flex items-center gap-2 bg-stone-100/80 border border-stone-200/90 rounded-full pl-1.5 pr-3 py-1 shadow-2xs">
@@ -55,8 +49,8 @@ export const Navbar: React.FC<NavbarProps> = ({ user, userTitle, onLogin, onLogo
           ) : (
             showNavbarLoginButton && (
               <button
-                onClick={onLogin}
-                className="px-3.5 py-1.5 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                onClick={() => handleLogin()}
+                className="px-3.5 py-1.5 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5 text-white" />
                 <span>Đăng nhập</span>

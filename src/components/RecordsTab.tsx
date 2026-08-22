@@ -1,18 +1,17 @@
-import React, { useRef } from 'react';
-import { 
-  Camera, 
-  Upload, 
-  Lightbulb, 
-  Loader2, 
-  Image as ImageIcon, 
-  Activity, 
-  Maximize2, 
-  ZoomIn, 
-  X, 
-  AlertTriangle, 
-  CheckCircle, 
-  Save, 
-  Check, 
+import React, { useRef } from "react";
+import {
+  Camera,
+  Upload,
+  Loader2,
+  Image as ImageIcon,
+  Activity,
+  Maximize2,
+  ZoomIn,
+  X,
+  AlertTriangle,
+  CheckCircle,
+  Save,
+  Check,
   RefreshCw,
   Pill,
   Clock,
@@ -21,52 +20,45 @@ import {
   UserCheck,
   Sparkles,
   Info
-} from 'lucide-react';
-import { ScanStateType, PrescriptionScanResult } from '../types';
+} from "lucide-react";
+import { useScanStore, useAuthStore, useUIStore } from "../store";
+import { useScanPrescription, useSavePrescriptionRecord, useCalendarReminder, useAuthMutations } from "../hooks";
 
-interface RecordsTabProps {
-  scanState: ScanStateType;
-  setScanState: (state: ScanStateType) => void;
-  selectedImages: string[];
-  setSelectedImages: React.Dispatch<React.SetStateAction<string[]>>;
-  activeImageIndex: number;
-  setActiveImageIndex: (index: number) => void;
-  onFilesSelect: (files: FileList | File[]) => void;
-  onRemoveImageFromBatch: (index: number) => void;
-  onSaveResult: () => void;
-  isSaving: boolean;
-  saveSuccess: boolean;
-  onOpenLightbox: (url: string, title: string) => void;
-  userTitle: string;
-  aiTitle: string;
-  userDisplayName: string;
-  isLargeText: boolean;
-  setAlertMessage: (msg: string | null) => void;
-  scanResult: PrescriptionScanResult | null;
-  onSetCalendarReminder: (medName: string, time: string) => void;
-}
+export const RecordsTab: React.FC = () => {
+  // TanStack Query Mutations
+  const { scanImages } = useScanPrescription();
+  const { mutate: saveRecord, isPending: isSaving, isSuccess: saveSuccess } = useSavePrescriptionRecord();
+  const { setCalendarReminder } = useCalendarReminder();
+  const { login: handleLogin } = useAuthMutations();
 
-export const RecordsTab: React.FC<RecordsTabProps> = ({
-  scanState,
-  setScanState,
-  selectedImages,
-  setSelectedImages,
-  activeImageIndex,
-  setActiveImageIndex,
-  onFilesSelect,
-  onRemoveImageFromBatch,
-  onSaveResult,
-  isSaving,
-  saveSuccess,
-  onOpenLightbox,
-  userTitle,
-  aiTitle,
-  userDisplayName,
-  isLargeText,
-  setAlertMessage,
-  scanResult,
-  onSetCalendarReminder
-}) => {
+  // Scan Store (Pure Client State)
+  const scanState = useScanStore((state) => state.scanState);
+  const selectedImages = useScanStore((state) => state.selectedImages);
+  const addSelectedImages = useScanStore((state) => state.addSelectedImages);
+  const activeImageIndex = useScanStore((state) => state.activeImageIndex);
+  const setActiveImageIndex = useScanStore((state) => state.setActiveImageIndex);
+  const scanResult = useScanStore((state) => state.scanResult);
+  const removeImageFromBatch = useScanStore((state) => state.removeImageFromBatch);
+  const resetScan = useScanStore((state) => state.resetScan);
+
+  // Auth Store
+  const userProfile = useAuthStore((state) => state.userProfile);
+  const user = useAuthStore((state) => state.user);
+  const userTitle = userProfile.userTitle || "Bác";
+  const aiTitle = userProfile.aiTitle || "Cháu";
+  const userGreeting = userTitle && userTitle !== "Tôi" ? userTitle : "Bác";
+  const userDisplayName = userProfile.nickname
+    ? userProfile.nickname
+    : user?.displayName
+      ? user.displayName
+      : userGreeting;
+
+  // UI Store
+  const isLargeText = useUIStore((state) => state.isLargeText);
+  const setAlertMessage = useUIStore((state) => state.setAlertMessage);
+  const setConfirmDialog = useUIStore((state) => state.setConfirmDialog);
+  const onOpenLightbox = (url: string, title: string) => useUIStore.getState().setLightboxImage({ url, title });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
@@ -75,19 +67,18 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
   const titleClass = isLargeText ? "text-2xl font-bold tracking-tight" : "text-xl font-bold tracking-tight";
   const subTitleClass = isLargeText ? "text-lg font-bold" : "text-base font-bold";
   const bodyClass = isLargeText ? "text-base leading-relaxed" : "text-sm leading-relaxed";
-  const descClass = isLargeText ? "text-sm" : "text-xs";
 
   const handleMainFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      onFilesSelect(e.target.files);
+      scanImages(e.target.files);
     }
   };
 
   const handleAddMorePhotosInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const fileArray = Array.from(e.target.files) as File[];
-      const files = fileArray.filter(f => f && f.type && f.type.startsWith('image/'));
-      const readPromises = files.map(file => {
+      const files = fileArray.filter((f) => f && f.type && f.type.startsWith("image/"));
+      const readPromises = files.map((file) => {
         return new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = (evt) => resolve(evt.target?.result as string);
@@ -95,20 +86,34 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
         });
       });
 
-      Promise.all(readPromises).then(newImages => {
-        setSelectedImages(prev => [...prev, ...newImages]);
+      Promise.all(readPromises).then((newImages) => {
+        addSelectedImages(newImages);
         setAlertMessage(`Đã tải thêm ${newImages.length} ảnh vào tập hồ sơ!`);
       });
     }
   };
 
+  const handleRemoveImage = (idx: number) => {
+    if (selectedImages.length <= 1) {
+      setConfirmDialog({
+        message: "Xóa ảnh duy nhất này sẽ quay về màn hình chụp tải ảnh ban đầu. Bác có muốn xóa không?",
+        onConfirm: () => {
+          resetScan();
+          setConfirmDialog(null);
+        }
+      });
+      return;
+    }
+    removeImageFromBatch(idx);
+  };
+
   // 1. MÀN HÌNH CHỤP / TẢI ẢNH (IDLE)
-  if (scanState === 'IDLE') {
+  if (scanState === "IDLE") {
     return (
       <div className="flex flex-col items-center justify-center py-5 px-4 space-y-5 animate-in fade-in duration-300 max-w-sm mx-auto">
         {/* Hidden Camera Input */}
-        <input 
-          type="file" 
+        <input
+          type="file"
           ref={cameraInputRef}
           accept="image/*"
           capture="environment"
@@ -117,8 +122,8 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
         />
 
         {/* Hidden Multiple File Input */}
-        <input 
-          type="file" 
+        <input
+          type="file"
           ref={fileInputRef}
           accept="image/*"
           multiple
@@ -129,7 +134,8 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
         {/* Greeting Block */}
         <div className="w-full text-center space-y-1 py-1">
           <h2 className={`${titleClass} text-stone-900 font-extrabold`}>
-            {aiTitle} chào {userTitle}{userDisplayName ? ` ${userDisplayName}` : ""}!
+            {aiTitle} chào {userTitle}
+            {userDisplayName ? ` ${userDisplayName}` : ""}!
           </h2>
           <p className={`${bodyClass} text-stone-600 font-medium max-w-xs mx-auto`}>
             {userTitle} chụp hoặc chọn tải lên phiếu khám, đơn thuốc của {userTitle} nhé!
@@ -172,39 +178,23 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Medical Tip Block */}
-        <div className="w-full bg-[#FDF8F3] border-l-4 border-[#B85B43] rounded-r-2xl p-3.5 shadow-sm text-left border border-stone-200/60">
-          <div className="flex items-start gap-3">
-            <div className="p-1.5 bg-[#F4DCD3] rounded-lg text-[#B85B43] shrink-0 mt-0.5">
-              <Lightbulb className="w-5 h-5" />
-            </div>
-            <p className={`${descClass} text-stone-800 leading-relaxed font-medium`}>
-              <strong className="font-bold text-stone-900">Lưu ý cho {userTitle}:</strong> Gemini AI sẽ đọc toàn bộ chữ viết tay và chữ in trên ảnh để bóc tách danh sách thuốc, liều dùng và tạo lịch nhắc tự động ạ!
-            </p>
-          </div>
-        </div>
       </div>
     );
   }
 
   // 2. MÀN HÌNH ĐANG PHÂN TÍCH VỚI GEMINI VISION (ANALYZING)
-  if (scanState === 'ANALYZING') {
+  if (scanState === "ANALYZING") {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 space-y-6 animate-in fade-in duration-300 text-center max-w-sm mx-auto">
         <div className="relative w-full aspect-4/3 max-w-xs rounded-2xl overflow-hidden border-2 border-[#B85B43] shadow-lg bg-stone-900">
           {selectedImages.length > 0 ? (
-            <img 
-              src={selectedImages[0]} 
-              alt="Ảnh đang phân tích" 
-              className="w-full h-full object-contain opacity-90" 
-            />
+            <img src={selectedImages[0]} alt="Ảnh đang phân tích" className="w-full h-full object-contain opacity-90" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-stone-400">
               <ImageIcon className="w-12 h-12" />
             </div>
           )}
-          
+
           <div className="absolute inset-x-0 h-1 bg-[#B85B43] shadow-[0_0_15px_#B85B43] animate-pulse top-1/2 -translate-y-1/2"></div>
           <div className="absolute inset-0 bg-[#B85B43]/10 pointer-events-none"></div>
 
@@ -219,7 +209,8 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
             {userTitle} đợi {aiTitle} một chút nhé...
           </h3>
           <p className={`${bodyClass} text-stone-600`}>
-            {aiTitle} đang phân tích đơn thuốc và trích xuất danh sách liều dùng từ {selectedImages.length} ảnh thực tế ạ.
+            {aiTitle} đang phân tích đơn thuốc và trích xuất danh sách liều dùng từ {selectedImages.length} ảnh thực tế
+            ạ.
           </p>
         </div>
 
@@ -231,24 +222,24 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
   }
 
   // 3. MÀN HÌNH KẾT QUẢ PHÂN TÍCH THẬT TỪ GEMINI AI (RESULT)
-  const isWarning = scanResult?.badgeType === 'warning' || Boolean(scanResult?.warning);
-  const badgeColor = isWarning 
-    ? 'bg-amber-100 border-amber-300 text-amber-900' 
-    : 'bg-emerald-100 border-emerald-300 text-emerald-900';
+  const isWarning = scanResult?.badgeType === "warning" || Boolean(scanResult?.warning);
+  const badgeColor = isWarning
+    ? "bg-amber-100 border-amber-300 text-amber-900"
+    : "bg-emerald-100 border-emerald-300 text-emerald-900";
 
   return (
     <div className="space-y-5 px-4 py-4 animate-in slide-in-from-bottom-4 duration-300 max-w-md mx-auto">
       {/* Hidden File Inputs to add more photos */}
-      <input 
-        type="file" 
+      <input
+        type="file"
         ref={addMoreCameraInputRef}
         accept="image/*"
         capture="environment"
         className="hidden"
         onChange={handleAddMorePhotosInputChange}
       />
-      <input 
-        type="file" 
+      <input
+        type="file"
         ref={addMoreFileInputRef}
         accept="image/*"
         multiple
@@ -260,7 +251,7 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
       <div className="flex items-center justify-between pb-2 border-b border-stone-200">
         <div className="flex items-center gap-2 min-w-0">
           <Activity className="w-6 h-6 text-[#B85B43] shrink-0" />
-          <h2 className={`${titleClass} text-stone-900 font-extrabold truncate`}>
+          <h2 className={`${titleClass} text-stone-900 font-extrabold`}>
             {scanResult?.title || "Kết quả đọc đơn thuốc:"}
           </h2>
         </div>
@@ -275,19 +266,25 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
           {scanResult.facility && (
             <div className="flex items-center gap-2 text-stone-700 font-semibold">
               <Building className="w-4 h-4 text-[#B85B43] shrink-0" />
-              <span>Cơ sở y tế: <strong className="text-stone-900">{scanResult.facility}</strong></span>
+              <span>
+                Cơ sở y tế: <strong className="text-stone-900">{scanResult.facility}</strong>
+              </span>
             </div>
           )}
           {scanResult.doctor && (
             <div className="flex items-center gap-2 text-stone-700 font-semibold">
               <UserCheck className="w-4 h-4 text-[#B85B43] shrink-0" />
-              <span>Bác sĩ kê đơn: <strong className="text-stone-900">{scanResult.doctor}</strong></span>
+              <span>
+                Bác sĩ kê đơn: <strong className="text-stone-900">{scanResult.doctor}</strong>
+              </span>
             </div>
           )}
           {scanResult.diagnosis && (
             <div className="flex items-center gap-2 text-stone-700 font-semibold">
               <Sparkles className="w-4 h-4 text-[#B85B43] shrink-0" />
-              <span>Chẩn đoán: <strong className="text-[#B85B43]">{scanResult.diagnosis}</strong></span>
+              <span>
+                Chẩn đoán: <strong className="text-[#B85B43]">{scanResult.diagnosis}</strong>
+              </span>
             </div>
           )}
         </div>
@@ -302,14 +299,14 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
           </span>
 
           <div className="flex items-center gap-1.5">
-            <button 
+            <button
               onClick={() => addMoreCameraInputRef.current?.click()}
               className="text-xs font-bold text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-2 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
               title="Chụp thêm ảnh"
             >
               <Camera className="w-3.5 h-3.5 text-[#B85B43]" /> Chụp
             </button>
-            <button 
+            <button
               onClick={() => addMoreFileInputRef.current?.click()}
               className="text-xs font-bold text-[#B85B43] bg-[#FBF0EC] hover:bg-[#F4DCD3] border border-[#F4DCD3] px-2 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
               title="Chọn thêm từ Album"
@@ -321,14 +318,14 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
 
         {selectedImages.length > 0 && (
           <div className="space-y-2">
-            <div 
+            <div
               onClick={() => onOpenLightbox(selectedImages[activeImageIndex], `Ảnh thứ ${activeImageIndex + 1}`)}
               className="relative rounded-xl overflow-hidden border border-stone-300 h-44 bg-stone-900 cursor-pointer group shadow-sm flex items-center justify-center"
             >
-              <img 
-                src={selectedImages[activeImageIndex]} 
-                alt={`Ảnh ${activeImageIndex + 1}`} 
-                className="w-full h-full object-contain group-hover:scale-102 transition-transform duration-300" 
+              <img
+                src={selectedImages[activeImageIndex]}
+                alt={`Ảnh ${activeImageIndex + 1}`}
+                className="w-full h-full object-contain group-hover:scale-102 transition-transform duration-300"
               />
               <div className="absolute inset-0 bg-stone-900/30 group-hover:bg-stone-900/10 transition-colors flex items-center justify-center">
                 <div className="p-2 bg-white/25 backdrop-blur-md rounded-full text-white">
@@ -348,20 +345,22 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
             {selectedImages.length > 1 && (
               <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1">
                 {selectedImages.map((imgUrl, idx) => (
-                  <div 
+                  <div
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
                     className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer shrink-0 transition-all ${
-                      activeImageIndex === idx ? 'border-[#B85B43] scale-105 shadow-sm' : 'border-stone-200 opacity-70 hover:opacity-100'
+                      activeImageIndex === idx
+                        ? "border-[#B85B43] scale-105 shadow-sm"
+                        : "border-stone-200 opacity-70 hover:opacity-100"
                     }`}
                   >
                     <img src={imgUrl} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onRemoveImageFromBatch(idx);
+                        handleRemoveImage(idx);
                       }}
-                      className="absolute top-0 right-0 bg-rose-600 text-white p-0.5 rounded-bl-md hover:bg-rose-700"
+                      className="absolute top-0 right-0 bg-rose-600 text-white p-0.5 rounded-bl-md hover:bg-rose-700 cursor-pointer"
                       title="Xóa ảnh này"
                     >
                       <X className="w-3 h-3" />
@@ -384,8 +383,8 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
 
           <div className="space-y-3">
             {scanResult.medications.map((med, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="bg-white border border-stone-200/90 border-l-4 border-l-[#B85B43] rounded-2xl p-4 shadow-soft space-y-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -400,18 +399,24 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
                 <div className="space-y-1 text-xs text-stone-700 pl-1">
                   <div className="flex items-start gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-[#B85B43] shrink-0 mt-0.5" />
-                    <span><strong className="text-stone-900">Liều dùng:</strong> {med.dosage}</span>
+                    <span>
+                      <strong className="text-stone-900">Liều dùng:</strong> {med.dosage}
+                    </span>
                   </div>
                   {med.purpose && (
                     <div className="flex items-start gap-1.5">
                       <Info className="w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5" />
-                      <span><strong className="text-stone-900">Mục đích:</strong> {med.purpose}</span>
+                      <span>
+                        <strong className="text-stone-900">Mục đích:</strong> {med.purpose}
+                      </span>
                     </div>
                   )}
                   {med.foodAdvice && (
                     <div className="flex items-start gap-1.5 text-amber-900">
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                      <span><strong className="text-amber-950">Lưu ý:</strong> {med.foodAdvice}</span>
+                      <span>
+                        <strong className="text-amber-950">Lưu ý:</strong> {med.foodAdvice}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -419,7 +424,7 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
                 {/* Nút Tạo Lịch Nhắc Thuốc Từng Thuốc */}
                 <button
                   type="button"
-                  onClick={() => onSetCalendarReminder(med.name, med.reminderTime || "08:00")}
+                  onClick={() => setCalendarReminder(med.name, med.reminderTime || "08:00", () => handleLogin())}
                   className="w-full mt-2 bg-[#FBF0EC] hover:bg-[#F4DCD3] text-[#B85B43] border border-[#F4DCD3] font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
                 >
                   <Calendar className="w-3.5 h-3.5 text-[#B85B43]" />
@@ -441,14 +446,14 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
 
           <div className="space-y-2.5">
             {scanResult.labResults.map((lab, idx) => {
-              const isHigh = lab.status === 'high' || lab.status === 'warning';
+              const isHigh = lab.status === "high" || lab.status === "warning";
               return (
-                <div 
+                <div
                   key={idx}
                   className={`rounded-2xl p-3.5 border shadow-2xs space-y-1 ${
-                    isHigh 
-                      ? 'bg-amber-50/90 border-amber-200 text-amber-950' 
-                      : 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                    isHigh
+                      ? "bg-amber-50/90 border-amber-200 text-amber-950"
+                      : "bg-emerald-50/80 border-emerald-200 text-emerald-950"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -463,9 +468,7 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
                     <span className="font-bold text-sm">{lab.value}</span>
                   </div>
                   {lab.advice && (
-                    <p className="text-xs text-stone-700 pl-5.5 leading-relaxed font-medium">
-                      {lab.advice}
-                    </p>
+                    <p className="text-xs text-stone-700 pl-5.5 leading-relaxed font-medium">{lab.advice}</p>
                   )}
                 </div>
               );
@@ -480,9 +483,7 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
           <h4 className="text-xs font-extrabold text-[#B85B43] uppercase tracking-wider flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-[#B85B43]" /> Lời khuyên ân cần của {aiTitle}:
           </h4>
-          <p className={`${bodyClass} text-stone-800 leading-relaxed font-medium`}>
-            {scanResult.advice}
-          </p>
+          <p className={`${bodyClass} text-stone-800 leading-relaxed font-medium`}>{scanResult.advice}</p>
         </div>
       )}
 
@@ -492,21 +493,17 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
           <h4 className="text-xs font-extrabold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
             <AlertTriangle className="w-4 h-4 text-rose-600" /> Cảnh báo quan trọng:
           </h4>
-          <p className={`${bodyClass} leading-relaxed font-medium`}>
-            {scanResult.warning}
-          </p>
+          <p className={`${bodyClass} leading-relaxed font-medium`}>{scanResult.warning}</p>
         </div>
       )}
 
       {/* Action Buttons */}
       <div className="pt-2 space-y-3">
-        <button 
-          onClick={onSaveResult}
+        <button
+          onClick={() => saveRecord()}
           disabled={isSaving || saveSuccess}
           className={`w-full flex items-center justify-center gap-2 rounded-2xl p-4 text-base font-bold transition-all shadow-sm active:scale-98 cursor-pointer ${
-            saveSuccess 
-              ? 'bg-stone-800 text-white' 
-              : 'bg-[#B85B43] hover:bg-[#A34E37] text-white'
+            saveSuccess ? "bg-stone-800 text-white" : "bg-[#B85B43] hover:bg-[#A34E37] text-white"
           }`}
         >
           {isSaving ? (
@@ -516,15 +513,13 @@ export const RecordsTab: React.FC<RecordsTabProps> = ({
           ) : (
             <Save className="w-6 h-6" />
           )}
-          {saveSuccess ? 'Đã lưu toàn bộ ảnh & kết quả vào Lịch sử!' : `Lưu kết quả & ${selectedImages.length} ảnh vào Lịch sử`}
+          {saveSuccess
+            ? "Đã lưu toàn bộ ảnh & kết quả vào Lịch sử!"
+            : `Lưu kết quả & ${selectedImages.length} ảnh vào Lịch sử`}
         </button>
 
-        <button 
-          onClick={() => {
-            setSelectedImages([]);
-            setActiveImageIndex(0);
-            setScanState('IDLE');
-          }}
+        <button
+          onClick={resetScan}
           className="w-full flex items-center justify-center gap-2 bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 rounded-2xl p-3.5 text-base font-bold active:scale-98 transition-all shadow-xs cursor-pointer"
         >
           <RefreshCw className="w-5 h-5 text-stone-500" />

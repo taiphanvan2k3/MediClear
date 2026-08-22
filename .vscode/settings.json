@@ -1,0 +1,14 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  // Cấu hình Import: Ưu tiên dùng đường dẫn tuyệt đối (Absolute Import @/...) cho các module ở xa
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+
+  // Cho phép search trong file git ignored (true là không search ignore file)
+  "search.useIgnoreFiles": true
+}

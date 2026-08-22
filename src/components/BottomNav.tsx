@@ -1,18 +1,12 @@
 import React from 'react';
 import { FileText, Pill, Clock, User as UserIcon } from 'lucide-react';
-import { TabType } from '../types';
+import { useUIStore } from '../store';
 
-interface BottomNavProps {
-  activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
-  isLargeText: boolean;
-}
+export const BottomNav: React.FC = () => {
+  const activeTab = useUIStore((state) => state.activeTab);
+  const setActiveTab = useUIStore((state) => state.setActiveTab);
+  const isLargeText = useUIStore((state) => state.isLargeText);
 
-export const BottomNav: React.FC<BottomNavProps> = ({
-  activeTab,
-  setActiveTab,
-  isLargeText
-}) => {
   const labelClass = isLargeText ? "text-xs font-bold" : "text-[11px] font-semibold";
 
   return (
@@ -21,7 +15,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* Tab 1: Sổ khám */}
         <button
           onClick={() => setActiveTab('RECORDS')}
-          className={`flex flex-col items-center justify-center gap-1 transition-colors relative ${
+          className={`flex flex-col items-center justify-center gap-1 transition-colors relative cursor-pointer ${
             activeTab === 'RECORDS' ? 'text-[#B85B43]' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
@@ -35,7 +29,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* Tab 2: Tra thuốc */}
         <button
           onClick={() => setActiveTab('MEDS')}
-          className={`flex flex-col items-center justify-center gap-1 transition-colors relative ${
+          className={`flex flex-col items-center justify-center gap-1 transition-colors relative cursor-pointer ${
             activeTab === 'MEDS' ? 'text-[#B85B43]' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
@@ -49,7 +43,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* Tab 3: Lịch sử */}
         <button
           onClick={() => setActiveTab('HISTORY')}
-          className={`flex flex-col items-center justify-center gap-1 transition-colors relative ${
+          className={`flex flex-col items-center justify-center gap-1 transition-colors relative cursor-pointer ${
             activeTab === 'HISTORY' ? 'text-[#B85B43]' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
@@ -63,7 +57,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* Tab 4: Hồ sơ */}
         <button
           onClick={() => setActiveTab('PROFILE')}
-          className={`flex flex-col items-center justify-center gap-1 transition-colors relative ${
+          className={`flex flex-col items-center justify-center gap-1 transition-colors relative cursor-pointer ${
             activeTab === 'PROFILE' ? 'text-[#B85B43]' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
