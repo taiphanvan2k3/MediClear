@@ -11,6 +11,9 @@
 3. [Mô hình Clean Layered Architecture cho Node.js / Express](#3-mô-hình-clean-layered-architecture-cho-nodejs--express)
 4. [Cơ chế Quota Google Search Grounding giữa các dòng model Gemini (2.5 Flash vs 3.x Flash-Lite)](#4-cơ-chế-quota-google-search-grounding-giữa-các-dòng-model-gemini-25-flash-vs-3x-flash-lite)
 5. [Pipeline 2 Bước (Two-Stage Pipeline) Khi Tra Cứu Bằng Ảnh Chụp Nhãn Thuốc](#5-pipeline-2-bước-two-stage-pipeline-khi-tra-cứu-bằng-ảnh-chụp-nhãn-thuốc)
+6. [Cơ chế PWA, Google WebAPK & Phím tắt SOS (App Shortcuts) trên Android vs iOS](#6-cơ-chế-pwa-google-webapk--phím-tắt-sos-app-shortcuts-trên-android-vs-ios)
+7. [Tránh lỗi Runtime "Illegal Constructor" do Browser Globals trong React TSX](#7-tránh-lỗi-runtime-illegal-constructor-do-browser-globals-trong-react-tsx)
+8. [Nguyên tắc thiết kế Inset Grouped List chuẩn Clinical Modern Wellness](#8-nguyên-tắc-thiết-kế-inset-grouped-list-chuẩn-clinical-modern-wellness)
 
 ---
 
@@ -29,10 +32,10 @@ Trong MediClear, **chỉ có duy nhất 1 server Express** mở cổng `3000`. E
                       Request từ trình duyệt (http://localhost:3000)
                                         │
                                         ▼
-                               ┌─────────────────┐
-                               │  Express Server │ (Lắng nghe tại PORT 3000)
-                               └────────┬────────┘
-                                        │
+                                ┌─────────────────┐
+                                │  Express Server │ (Lắng nghe tại PORT 3000)
+                                └────────┬────────┘
+                                         │
                     ┌───────────────────┴───────────────────┐
                     ▼                                       ▼
          Đường dẫn `/api/...`                     Tất cả đường dẫn còn lại
@@ -174,5 +177,84 @@ MediClear sử dụng quy trình 2 bước tự động trong [`server/services/
 └─────────────────────────────────────────────────────────────┘
 ```
 
+---
 
+## 6. Cơ chế PWA, Google WebAPK & Phím tắt SOS (App Shortcuts) trên Android vs iOS
 
+### ❓ Hiện tượng: Tại sao khi vào bằng HTTP IP (`http://10.x.x.x:3000`) chỉ hiện lối tắt Chrome thường, không có phím tắt SOS?
+
+### 🔍 Bản chất kỹ thuật của Google WebAPK trên Android:
+1. **Yêu cầu kết nối an toàn (Secure Origin / HTTPS)**:
+   - Google Chrome trên Android yêu cầu trang web **bắt buộc phải có HTTPS** (hoặc `localhost`) để kích hoạt cơ chế biên dịch **WebAPK**.
+   - Khi chạy trên HTTP không có chứng chỉ bảo mật (ví dụ IP mạng LAN), Chrome tự động hạ cấp từ *Ứng dụng WebAPK* xuống thành *Lối tắt Bookmark của Chrome (Web Bookmark Shortcut)*.
+   - Đối với Lối tắt Bookmark thường, hệ điều hành Android không đăng ký bộ lọc Intent, nên khi đè giữ icon chỉ hiện nút *"Xóa lối tắt"*.
+
+2. **Khi có HTTPS (hoặc bật cờ `chrome://flags` cho IP LAN)**:
+   - Chrome gửi cấu hình `manifest.json` lên **Google WebAPK Minting Service**.
+   - Google tự động đóng gói ứng dụng thành **gói APK ảo** cài trực tiếp vào Android Launcher.
+   - Các phím tắt trong mảng `shortcuts` của `manifest.json` được Android đăng ký vào menu **Long-Press (Đè giữ)** của hệ thống:
+     - 🚨 **"Gọi Người Thân SOS"** (`/?action=quick_sos`)
+     - 📷 **"Quét Đơn Thuốc Mới"** (`/?action=scan`)
+     - 💊 **"Tra Cứu Thuốc AI"** (`/?action=meds`)
+
+```
+   [Người dùng đè giữ Icon MediClear trên màn hình chính Android]
+                               │
+                               ▼
+            ┌────────────────────────────────────────┐
+            │ Native Android App Shortcuts Popover   │
+            │  🚨 Gọi Người Thân SOS                 │ ────► Mở URL `/?action=quick_sos`
+            │  📷 Quét Đơn Thuốc Mới                 │                    │
+            │  💊 Tra Cứu Thuốc AI                   │                    ▼
+            └────────────────────────────────────────┘       ┌────────────────────────┐
+                                                             │ Code App.tsx bắt param │
+                                                             │ và gọi `tel:<SĐT SOS>` │
+                                                             │ tức thì trong 0.5s!    │
+                                                             └────────────────────────┘
+```
+
+### ⚙️ Các yêu cầu bắt buộc trong `public/manifest.json` để Google WebAPK chấp nhận:
+- Có `"scope": "/"` và `"start_url": "/"`.
+- `"display": "standalone"`.
+- Bắt buộc có **icon PNG raster** chuẩn kích thước:
+  - `192x192` PNG (`purpose: "any"`)
+  - `512x512` PNG (`purpose: "any maskable"`)
+  - `96x96` PNG cho từng icon trong mảng `shortcuts`.
+- Phải có một **Service Worker** (`sw.js`) đang hoạt động với sự kiện `fetch`.
+
+### ⚡ Chiến lược Cache Service Worker: `Network-First`
+- Để tránh hiện tượng điện thoại giữ cache HTML/JS cũ sau khi code thay đổi, `public/sw.js` sử dụng chiến lược **Network-First**: Luôn ưu tiên lấy code mới nhất từ Server, chỉ fallback sang Cache khi mất mạng (Offline).
+
+---
+
+## 7. Tránh lỗi Runtime "Illegal Constructor" do Browser Globals trong React TSX
+
+### ❓ Hiện tượng
+Khi người dùng truy cập màn hình chưa đăng nhập, trang bị sập hoàn toàn và console báo lỗi:
+```
+Uncaught TypeError: Illegal constructor at Object.react_stack_bottom_frame
+```
+
+### 🔍 Nguyên nhân
+- Trong React TSX, nếu lập trình viên sử dụng một component icon (ví dụ `<Lock />`, `<Option />`, `<Image />`, `<Notification />`, `<Location />`) nhưng **quên `import` từ thư viện `lucide-react`**:
+- JavaScript không báo lỗi thiếu biến lúc build nếu biến đó trùng tên với một **Đối tượng toàn cục của trình duyệt (Browser Global Constructor)** (ví dụ: Web Locks API `window.Lock`, `window.Option`, `window.Notification`).
+- Khi React cố gắng render `<Lock />` dưới dạng component React (`new window.Lock()`), trình duyệt sẽ ném lỗi `TypeError: Illegal constructor` do không được phép khởi tạo đối tượng hệ thống này qua React.
+
+### 🛡️ Cách phòng tránh:
+- Luôn kiểm tra kỹ danh sách `import { Lock, ... } from "lucide-react"`.
+- Cấu hình ESLint rule `no-undef` để bắt các biến toàn cục không mong muốn.
+
+---
+
+## 8. Nguyên tắc thiết kế Inset Grouped List chuẩn Clinical Modern Wellness
+
+### ❓ Vấn đề: Giao diện Mobile rời rạc
+Khi thiết kế ứng dụng cho điện thoại, nếu mỗi tùy chọn (Cài đặt, Cỡ chữ, SOS...) đều nằm trong một Card trắng riêng biệt viền nổi, màn hình sẽ bị "vụn", khoảng trống trắng quá nhiều, tạo cảm giác thô kệch và kém chuyên nghiệp.
+
+### 🎨 Giải pháp: Mô hình Inset Grouped List (Chuẩn Apple Health / Modern Settings)
+1. **Phân nhóm thành 3 tầng rõ ràng**:
+   - **Hero Profile Card**: Chứa thông tin nhận diện cốt lõi (Avatar, Tên, Email, Xưng hô AI).
+   - **Health Card**: Chứa dữ liệu y tế (Nhãn bệnh nền đang theo dõi).
+   - **Grouped Settings Card**: Gộp toàn bộ các tùy chọn hệ thống (SOS, Cài đặt PWA, Cỡ chữ) vào **1 thẻ duy nhất** có đường phân cách mỏng (`divide-stone-100`).
+2. **Nguyên tắc Render Modal dùng chung**:
+   - Tất cả các Modal hướng dẫn / chỉnh sửa (như PWA Guide Modal, Settings Modal) phải được render ở phạm vi dùng chung của component (bên ngoài các lệnh `if (!user) return ...`), đảm bảo modal hoạt động mượt mà ở cả trạng thái đã đăng nhập và chưa đăng nhập.
