@@ -2,6 +2,7 @@
   "name": "MediClear - Trợ Lý Y Tế AI",
   "short_name": "MediClear",
   "start_url": "/",
+  "scope": "/",
   "id": "/",
   "display": "standalone",
   "orientation": "portrait",
