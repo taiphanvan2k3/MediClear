@@ -3,9 +3,19 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { User } from "firebase/auth";
 import { UserProfile, DEFAULT_PROFILE } from "../types";
 
+export interface CachedUserInfo {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+}
+
 export interface AuthState {
   user: User | null;
+  cachedUser: CachedUserInfo | null;
+  isAuthReady: boolean;
   setUser: (user: User | null) => void;
+  setIsAuthReady: (ready: boolean) => void;
   cachedAccessToken: string | null;
   setCachedAccessToken: (token: string | null) => void;
   userProfile: UserProfile;
@@ -21,7 +31,25 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      setUser: (user) => set({ user }),
+      cachedUser: null,
+      isAuthReady: false,
+      setUser: (user) => {
+        if (user) {
+          set({
+            user,
+            cachedUser: {
+              uid: user.uid,
+              displayName: user.displayName,
+              email: user.email,
+              photoURL: user.photoURL
+            },
+            isAuthReady: true
+          });
+        } else {
+          set({ user: null, cachedUser: null, isAuthReady: true });
+        }
+      },
+      setIsAuthReady: (isAuthReady) => set({ isAuthReady }),
       cachedAccessToken: null,
       setCachedAccessToken: (cachedAccessToken) => set({ cachedAccessToken }),
       userProfile: DEFAULT_PROFILE,
@@ -59,7 +87,8 @@ export const useAuthStore = create<AuthState>()(
       name: "mediClear_auth_store",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        userProfile: state.userProfile
+        userProfile: state.userProfile,
+        cachedUser: state.cachedUser
       })
     }
   )

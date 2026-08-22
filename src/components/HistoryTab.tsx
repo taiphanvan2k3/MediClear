@@ -1,30 +1,30 @@
-import React, { useState } from "react";
 import {
-  Clock,
-  ChevronRight,
   ArrowLeft,
-  FileText,
-  Pill,
-  Camera,
-  Maximize2,
-  Calendar,
-  UserCheck,
   Building,
-  Trash2,
-  LogIn,
+  Calendar,
+  Camera,
+  ChevronRight,
+  Clock,
+  ExternalLink,
+  FileText,
+  Globe,
+  HeartPulse,
   Lock,
+  LogIn,
+  Maximize2,
+  Pill,
+  RotateCcw,
+  Search,
   ShieldCheck,
   Sparkles,
-  ExternalLink,
-  Search,
-  RotateCcw,
-  HeartPulse,
-  Globe
+  Trash2,
+  UserCheck
 } from "lucide-react";
+import React, { useState } from "react";
+import { useAuthMutations, useCalendarReminder } from "../hooks";
+import { useAuthStore, useRecordsStore, useUIStore } from "../store";
 import { HistoryRecord, MedSearchHistoryItem } from "../types";
 import { PrescriptionSlipView } from "./PrescriptionSlipView";
-import { useRecordsStore, useAuthStore, useUIStore } from "../store";
-import { useCalendarReminder, useAuthMutations } from "../hooks";
 
 export const HistoryTab: React.FC = () => {
   // Records Store (Pure Client State)
@@ -35,7 +35,11 @@ export const HistoryTab: React.FC = () => {
 
   // Auth Store
   const user = useAuthStore((state) => state.user);
+  const cachedUser = useAuthStore((state) => state.cachedUser);
+  const isAuthReady = useAuthStore((state) => state.isAuthReady);
   const userProfile = useAuthStore((state) => state.userProfile);
+
+  const currentUser = user || cachedUser;
 
   // TanStack Query Mutations
   const { login: onLogin } = useAuthMutations();
@@ -139,7 +143,18 @@ export const HistoryTab: React.FC = () => {
   }
 
   // Unauthenticated screen
-  if (!user) {
+  if (!currentUser) {
+    if (!isAuthReady) {
+      return (
+        <div className="space-y-4 px-4 py-4 animate-pulse max-w-md mx-auto">
+          <div className="bg-white border border-stone-200 rounded-3xl p-6 h-60 flex flex-col items-center justify-center space-y-3">
+            <div className="w-14 h-14 bg-stone-200 rounded-2xl"></div>
+            <div className="w-40 h-4 bg-stone-200 rounded-md"></div>
+            <div className="w-56 h-3 bg-stone-100 rounded-md"></div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="space-y-5 px-4 py-4 animate-in fade-in duration-300 max-w-md mx-auto">
         <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
@@ -632,7 +647,7 @@ export const HistoryTab: React.FC = () => {
                     </span>
                     <span className="text-[11px] text-stone-400 font-medium">{item.date}</span>
                   </div>
-                  <h3 className="font-extrabold text-sm text-stone-900 group-hover:text-[#B85B43] transition-colors break-words line-clamp-2 leading-snug">
+                  <h3 className="font-extrabold text-sm text-stone-900 group-hover:text-[#B85B43] transition-colors wrap-break-word line-clamp-2 leading-snug">
                     {item.name}
                   </h3>
                 </div>

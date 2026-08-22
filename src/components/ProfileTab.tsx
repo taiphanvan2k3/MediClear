@@ -26,6 +26,8 @@ import { AI_TITLE_OPTIONS, PRESET_CONDITIONS, USER_TITLE_OPTIONS } from "../type
 export const ProfileTab: React.FC = () => {
   // Auth Store
   const user = useAuthStore((state) => state.user);
+  const cachedUser = useAuthStore((state) => state.cachedUser);
+  const isAuthReady = useAuthStore((state) => state.isAuthReady);
   const userProfile = useAuthStore((state) => state.userProfile);
   const setUserProfile = useAuthStore((state) => state.setUserProfile);
   const customConditionInput = useAuthStore((state) => state.customConditionInput);
@@ -43,9 +45,14 @@ export const ProfileTab: React.FC = () => {
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
+  const currentUser = user || cachedUser;
   const uTitle = userProfile.userTitle || "Bác";
   const aiTitle = userProfile.aiTitle || "Cháu";
-  const userDisplayName = userProfile.nickname ? userProfile.nickname : user?.displayName ? user.displayName : uTitle;
+  const userDisplayName = userProfile.nickname
+    ? userProfile.nickname
+    : currentUser?.displayName
+      ? currentUser.displayName
+      : uTitle;
 
   const titleClass = isLargeText ? "text-2xl font-extrabold tracking-tight" : "text-xl font-extrabold tracking-tight";
 
@@ -67,78 +74,96 @@ export const ProfileTab: React.FC = () => {
       </div>
 
       {/* 1. MAIN CONTENT: Switch between Unauthenticated & Authenticated */}
-      {!user ? (
-        /* =================== CHƯA ĐĂNG NHẬP (UNAUTHENTICATED) =================== */
-        <div className="space-y-4">
-          {/* Khung Yêu cầu Đăng nhập */}
-          <div className="bg-white border border-stone-200/90 rounded-3xl p-6 text-center space-y-4 shadow-soft">
-            <div className="w-16 h-16 bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3] rounded-2xl flex items-center justify-center mx-auto shadow-xs">
-              <Lock className="w-8 h-8 text-[#B85B43]" />
+      {!currentUser ? (
+        !isAuthReady ? (
+          /* Subtle Skeleton while restoring auth session */
+          <div className="space-y-4 animate-pulse">
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 h-60 flex flex-col items-center justify-center space-y-3">
+              <div className="w-14 h-14 bg-stone-200 rounded-2xl"></div>
+              <div className="w-40 h-4 bg-stone-200 rounded-md"></div>
+              <div className="w-56 h-3 bg-stone-100 rounded-md"></div>
             </div>
-
-            <div className="space-y-1.5">
-              <h3 className="text-lg font-extrabold text-stone-900">Yêu cầu đăng nhập tài khoản</h3>
-              <p className="text-xs text-stone-600 font-medium leading-relaxed max-w-xs mx-auto">
-                Để đồng bộ hồ sơ bệnh lý, cài đặt xưng hô và quản lý sổ khám của gia đình lâu dài, vui lòng đăng nhập tài
-                khoản Google.
-              </p>
-            </div>
-
-            {/* Lợi ích khi đăng nhập */}
-            <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-3 text-left space-y-2">
-              <div className="flex items-start gap-2 text-xs font-semibold text-stone-700">
-                <ShieldCheck className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
-                <span>Bảo mật 100% hồ sơ bệnh án cá nhân trên Google Cloud</span>
-              </div>
-              <div className="flex items-start gap-2 text-xs font-semibold text-stone-700">
-                <Cloud className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
-                <span>Đồng bộ hồ sơ mượt mà trên tất cả thiết bị của gia đình</span>
-              </div>
-              <div className="flex items-start gap-2 text-xs font-semibold text-stone-700">
-                <Sparkles className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
-                <span>AI tự động cá nhân hóa xưng hô dịu dàng theo ý muốn</span>
-              </div>
-            </div>
-
-            {/* Nút Đăng nhập Google */}
-            <button
-              type="button"
-              onClick={() => onLogin()}
-              className="w-full flex items-center justify-center gap-2 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl py-3.5 px-4 font-bold text-sm transition-all shadow-xs active:scale-98 cursor-pointer"
-            >
-              <LogIn className="w-5 h-5 text-white" />
-              Đăng nhập bằng Google
-            </button>
           </div>
+        ) : (
+          /* =================== CHƯA ĐĂNG NHẬP (UNAUTHENTICATED) =================== */
+          <div className="space-y-4">
+            {/* Khung Yêu cầu Đăng nhập */}
+            <div className="bg-white border border-stone-200/90 rounded-3xl p-6 text-center space-y-4 shadow-soft">
+              <div className="w-16 h-16 bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3] rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+                <Lock className="w-8 h-8 text-[#B85B43]" />
+              </div>
 
-          {/* Group Cài Đặt Chung Khi Chưa Đăng Nhập */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider px-1">
-              Cài đặt & Tiện ích ứng dụng
-            </span>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-extrabold text-stone-900">Yêu cầu đăng nhập tài khoản</h3>
+                <p className="text-xs text-stone-600 font-medium leading-relaxed max-w-xs mx-auto">
+                  Để đồng bộ hồ sơ bệnh lý, cài đặt xưng hô và quản lý sổ khám của gia đình lâu dài, vui lòng đăng nhập
+                  tài khoản Google.
+                </p>
+              </div>
 
-            <div className="bg-white border border-stone-200/90 rounded-3xl shadow-soft divide-y divide-stone-100 overflow-hidden">
-              {/* Cỡ chữ to */}
-              <div className="p-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-700 border border-stone-200 flex items-center justify-center shrink-0">
-                    <Type className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-bold text-xs sm:text-sm text-stone-900 block truncate">Cỡ chữ to dễ đọc</span>
-                    <span className="text-[11px] text-stone-500 font-medium block truncate">
-                      Phóng to chữ cho người lớn tuổi
-                    </span>
-                  </div>
+              {/* Lợi ích khi đăng nhập */}
+              <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-3 text-left space-y-2">
+                <div className="flex items-start gap-2 text-xs font-semibold text-stone-700">
+                  <ShieldCheck className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
+                  <span>Bảo mật 100% hồ sơ bệnh án cá nhân trên Google Cloud</span>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                  <input type="checkbox" checked={isLargeText} onChange={onToggleLargeText} className="sr-only peer" />
-                  <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B85B43]"></div>
-                </label>
+                <div className="flex items-start gap-2 text-xs font-semibold text-stone-700">
+                  <Cloud className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
+                  <span>Đồng bộ hồ sơ mượt mà trên tất cả thiết bị của gia đình</span>
+                </div>
+                <div className="flex items-start gap-2 text-xs font-semibold text-stone-700">
+                  <Sparkles className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
+                  <span>AI tự động cá nhân hóa xưng hô dịu dàng theo ý muốn</span>
+                </div>
+              </div>
+
+              {/* Nút Đăng nhập Google */}
+              <button
+                type="button"
+                onClick={() => onLogin()}
+                className="w-full flex items-center justify-center gap-2 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl py-3.5 px-4 font-bold text-sm transition-all shadow-xs active:scale-98 cursor-pointer"
+              >
+                <LogIn className="w-5 h-5 text-white" />
+                Đăng nhập bằng Google
+              </button>
+            </div>
+
+            {/* Group Cài Đặt Chung Khi Chưa Đăng Nhập */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider px-1">
+                Cài đặt & Tiện ích ứng dụng
+              </span>
+
+              <div className="bg-white border border-stone-200/90 rounded-3xl shadow-soft divide-y divide-stone-100 overflow-hidden">
+                {/* Cỡ chữ to */}
+                <div className="p-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-700 border border-stone-200 flex items-center justify-center shrink-0">
+                      <Type className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-bold text-xs sm:text-sm text-stone-900 block truncate">
+                        Cỡ chữ to dễ đọc
+                      </span>
+                      <span className="text-[11px] text-stone-500 font-medium block truncate">
+                        Phóng to chữ cho người lớn tuổi
+                      </span>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={isLargeText}
+                      onChange={onToggleLargeText}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B85B43]"></div>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )
       ) : (
         /* =================== ĐÃ ĐĂNG NHẬP (AUTHENTICATED) =================== */
         <div className="space-y-4">
@@ -146,21 +171,25 @@ export const ProfileTab: React.FC = () => {
           <div className="bg-white border border-stone-200/90 rounded-3xl p-4 shadow-soft space-y-3.5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3.5 min-w-0">
-                {user.photoURL ? (
+                {currentUser.photoURL ? (
                   <img
-                    src={user.photoURL}
-                    alt={user.displayName || "Avatar"}
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName || "Avatar"}
                     referrerPolicy="no-referrer"
                     className="w-13 h-13 rounded-2xl object-cover border-2 border-[#B85B43] shadow-xs shrink-0"
                   />
                 ) : (
                   <div className="w-13 h-13 rounded-2xl bg-[#FBF0EC] text-[#B85B43] border-2 border-[#F4DCD3] flex items-center justify-center font-extrabold text-lg shadow-xs shrink-0">
-                    {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserIcon className="w-6 h-6" />}
+                    {currentUser.displayName ? (
+                      currentUser.displayName.charAt(0).toUpperCase()
+                    ) : (
+                      <UserIcon className="w-6 h-6" />
+                    )}
                   </div>
                 )}
                 <div className="min-w-0">
                   <h3 className="font-extrabold text-stone-900 text-base leading-snug truncate">{userDisplayName}</h3>
-                  <p className="text-xs text-stone-500 font-medium truncate">{user.email}</p>
+                  <p className="text-xs text-stone-500 font-medium truncate">{currentUser.email}</p>
                 </div>
               </div>
 
@@ -293,7 +322,7 @@ export const ProfileTab: React.FC = () => {
                     onChange={onToggleLargeText}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B85B43]"></div>
+                  <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B85B43]"></div>
                 </label>
               </div>
             </div>

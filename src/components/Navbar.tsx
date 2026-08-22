@@ -5,11 +5,14 @@ import { useAuthMutations } from "../hooks";
 
 export const Navbar: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+  const cachedUser = useAuthStore((state) => state.cachedUser);
+  const isAuthReady = useAuthStore((state) => state.isAuthReady);
   const userTitle = useAuthStore((state) => state.userProfile.userTitle) || "Bác";
   const activeTab = useUIStore((state) => state.activeTab);
   const { login: handleLogin } = useAuthMutations();
 
-  const showNavbarLoginButton = !user && activeTab !== "PROFILE" && activeTab !== "HISTORY";
+  const currentUser = user || cachedUser;
+  const showNavbarLoginButton = !currentUser && isAuthReady && activeTab !== "PROFILE" && activeTab !== "HISTORY";
 
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-30 shadow-xs">
@@ -26,31 +29,35 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* User Account Area */}
-        <div className="flex items-center gap-2">
-          {user ? (
+        <div className="flex items-center gap-2 min-h-7">
+          {currentUser ? (
             /* User Profile Avatar & Name Chip */
-            <div className="flex items-center gap-2 bg-stone-100/80 border border-stone-200/90 rounded-full pl-1.5 pr-3 py-1 shadow-2xs">
-              {user.photoURL ? (
+            <div className="flex items-center gap-2 bg-stone-100/80 border border-stone-200/90 rounded-full pl-1.5 pr-3 py-1 shadow-2xs animate-in fade-in duration-200">
+              {currentUser.photoURL ? (
                 <img
-                  src={user.photoURL}
-                  alt={user.displayName || "User Avatar"}
+                  src={currentUser.photoURL}
+                  alt={currentUser.displayName || "User Avatar"}
                   referrerPolicy="no-referrer"
                   className="w-6 h-6 rounded-full object-cover border border-[#B85B43] shrink-0"
                 />
               ) : (
                 <div className="w-6 h-6 rounded-full bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3] flex items-center justify-center text-xs font-bold shrink-0">
-                  {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
+                  {currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
                 </div>
               )}
               <span className="text-xs font-bold text-stone-800 max-w-22.5 truncate leading-none">
-                {user.displayName || "Thành viên"}
+                {currentUser.displayName || "Thành viên"}
               </span>
             </div>
+          ) : !isAuthReady ? (
+            /* Subtle Skeleton Placeholder while restoring session - Prevents FOUC/Flickering */
+            <div className="w-20 h-7 rounded-full bg-stone-200/60 animate-pulse shrink-0"></div>
           ) : (
             showNavbarLoginButton && (
               <button
+                type="button"
                 onClick={() => handleLogin()}
-                className="px-3.5 py-1.5 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
+                className="px-3.5 py-1.5 bg-[#B85B43] hover:bg-[#A34E37] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer animate-in fade-in duration-200"
               >
                 <LogIn className="w-3.5 h-3.5 text-white" />
                 <span>Đăng nhập</span>
