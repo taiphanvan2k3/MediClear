@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="128" fill="#B85B43"/>
+  <!-- Cross Background -->
+  <circle cx="256" cy="256" r="160" fill="#FAF6F0"/>
+  <!-- Medical Plus -->
+  <path d="M224 140 H288 V224 H372 V288 H288 V372 H224 V288 H140 V224 H224 Z" fill="#B85B43" rx="16"/>
+  <!-- Heart Icon in center -->
+  <path d="M256 220 C240 190, 190 200, 190 235 C190 270, 256 315, 256 315 C256 315, 322 270, 322 235 C322 200, 272 190, 256 220 Z" fill="#FAF6F0"/>
+</svg>

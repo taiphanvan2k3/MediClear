@@ -8,6 +8,8 @@ export interface UserProfile {
   userTitle: string; // e.g. "Bác", "Ông", "Bà", "Chú", "Cô", "Anh", "Chị"
   aiTitle: string;   // e.g. "Cháu", "Con", "Trợ lý AI", "Em", "Tôi"
   conditions: string[];
+  emergencyName?: string;
+  emergencyPhone?: string;
 }
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -16,7 +18,9 @@ export const DEFAULT_PROFILE: UserProfile = {
   birthYear: '',
   userTitle: 'Bác',
   aiTitle: 'Cháu',
-  conditions: []
+  conditions: [],
+  emergencyName: '',
+  emergencyPhone: ''
 };
 
 export const USER_TITLE_OPTIONS = ['Bác', 'Ông', 'Bà', 'Chú', 'Cô', 'Anh', 'Chị'];

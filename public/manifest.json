@@ -1,0 +1,94 @@
+{
+  "name": "MediClear - Trợ Lý Y Tế AI",
+  "short_name": "MediClear",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF6F0",
+  "theme_color": "#B85B43",
+  "description": "Trợ lý Y tế AI đọc hiểu đơn thuốc, tra cứu dược học, xuất phiếu mua thuốc và tái khám thông minh.",
+  "categories": ["medical", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "🚨 Gọi Người Thân SOS",
+      "short_name": "Gọi SOS",
+      "url": "/?action=quick_sos",
+      "description": "Gọi cấp cứu người thân ngay lập tức",
+      "icons": [
+        {
+          "src": "/icons/sos-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        },
+        {
+          "src": "/icons/sos-96.svg",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "📷 Quét Đơn Thuốc Mới",
+      "short_name": "Quét Đơn",
+      "url": "/?action=scan",
+      "description": "Mở máy ảnh chụp đơn thuốc AI",
+      "icons": [
+        {
+          "src": "/icons/scan-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        },
+        {
+          "src": "/icons/scan-96.svg",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "💊 Tra Cứu Thuốc AI",
+      "short_name": "Tra Thuốc",
+      "url": "/?action=meds",
+      "description": "Tra cứu liều dùng & cảnh báo an toàn",
+      "icons": [
+        {
+          "src": "/icons/meds-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        },
+        {
+          "src": "/icons/meds-96.svg",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}

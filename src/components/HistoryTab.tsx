@@ -12,6 +12,7 @@ import {
   Building,
   Trash2,
   LogIn,
+  Lock,
   ShieldCheck,
   Sparkles,
   ExternalLink,

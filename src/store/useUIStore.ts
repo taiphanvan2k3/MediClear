@@ -11,6 +11,12 @@ export interface UIState {
   isLargeText: boolean;
   toggleLargeText: () => void;
 
+  // PWA Install Prompt
+  deferredInstallPrompt: any | null;
+  setDeferredInstallPrompt: (prompt: any | null) => void;
+  isAppInstalled: boolean;
+  setIsAppInstalled: (installed: boolean) => void;
+
   // Modals & Dialogs
   lightboxImage: { url: string; title: string } | null;
   setLightboxImage: (img: { url: string; title: string } | null) => void;
@@ -28,6 +34,11 @@ export const useUIStore = create<UIState>()(
 
       isLargeText: false,
       toggleLargeText: () => set((state) => ({ isLargeText: !state.isLargeText })),
+
+      deferredInstallPrompt: null,
+      setDeferredInstallPrompt: (prompt) => set({ deferredInstallPrompt: prompt }),
+      isAppInstalled: false,
+      setIsAppInstalled: (installed) => set({ isAppInstalled: installed }),
 
       lightboxImage: null,
       setLightboxImage: (img) => set({ lightboxImage: img }),
