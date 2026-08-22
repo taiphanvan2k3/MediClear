@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import { User } from "firebase/auth";
-import { UserProfile, DEFAULT_PROFILE } from "../types";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { DEFAULT_PROFILE, UserProfile } from "../types";
 
 export interface CachedUserInfo {
   uid: string;

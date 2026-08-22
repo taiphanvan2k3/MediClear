@@ -14,6 +14,7 @@
 6. [Cơ chế PWA, Google WebAPK, Phím tắt SOS & Kiểm tra Trạng thái Cài đặt (Dẫn nguồn chuẩn Google/W3C)](#6-cơ-chế-pwa-google-webapk-phím-tắt-sos--kiểm-tra-trạng-thái-cài-đặt-dẫn-nguồn-chuẩn-googlew3c)
 7. [Tránh lỗi Runtime "Illegal Constructor" do Browser Globals trong React TSX](#7-tránh-lỗi-runtime-illegal-constructor-do-browser-globals-trong-react-tsx)
 8. [Nguyên tắc thiết kế Inset Grouped List chuẩn Clinical Modern Wellness](#8-nguyên-tắc-thiết-kế-inset-grouped-list-chuẩn-clinical-modern-wellness)
+9. [Xử lý lỗi chập chờn trạng thái Đăng nhập khi Reload trang (Auth FOUC Flicker)](#9-xử-lý-lỗi-chập-chờn-trạng-thái-đăng-nhập-khi-reload-trang-auth-fouc-flicker)
 
 ---
 
@@ -288,3 +289,72 @@ Khi thiết kế ứng dụng cho điện thoại, nếu mỗi tùy chọn (Cài
    - **Grouped Settings Card**: Gộp toàn bộ các tùy chọn hệ thống (SOS, Cỡ chữ) vào **1 thẻ duy nhất** có đường phân cách mỏng (`divide-stone-100`).
 2. **Nguyên tắc Render Modal dùng chung**:
    - Tất cả các Modal hướng dẫn / chỉnh sửa (như Settings Modal) phải được render ở phạm vi dùng chung của component (bên ngoài các lệnh `if (!user) return ...`), đảm bảo modal hoạt động mượt mà ở cả trạng thái đã đăng nhập và chưa đăng nhập.
+
+---
+
+## 9. Xử lý lỗi chập chờn trạng thái Đăng nhập khi Reload trang (Auth FOUC Flicker)
+
+### ❓ Hiện tượng: Flash of Unauthenticated Content (FOUC)
+Khi người dùng đã đăng nhập và bấm F5 / Reload trang:
+1. Trong khoảng **200ms – 500ms** đầu tiên, Header hiển thị nút màu cam **"Đăng nhập"**.
+2. Ngay sau khi Firebase Auth tải xong session từ IndexedDB, nút "Đăng nhập" đột ngột biến mất và nhảy thành **Avatar + Tên người dùng**.
+3. Hiện tượng này làm giao diện bị giật (Layout Shift) và tạo cảm giác ứng dụng phản hồi chậm chạp.
+
+### 🔍 Nguyên nhân kỹ thuật
+- `onAuthStateChanged` của Firebase Auth là **Bất đồng bộ (Asynchronous)**. Nó cần thời gian để đọc token và giải mã session từ trình duyệt.
+- Trong tick render đầu tiên (0ms), React state `user` ban đầu luôn là `null`.
+- Do `user === null`, các component như `Navbar.tsx`, `ProfileTab.tsx` lập tức render giao diện "Chưa đăng nhập" trước khi Firebase kịp phản hồi.
+
+```
+[F5 / Reload Trang] ──► Render Tick 0ms (user = null) ──► Hiện nút "ĐĂNG NHẬP" (SAI LẦM)
+                                │
+                        (Chờ 300ms Firebase tải session)
+                                ▼
+                       Firebase trả về User ────────► Đột ngột biến thành "AVATAR + TÊN" (GIẬT UI)
+```
+
+### 💡 Giải pháp Kiến Trúc 2 Lớp (Two-Layer Optimistic Hydration):
+
+```
+                                  [F5 / Reload Trang]
+                                           │
+                        ┌──────────────────┴──────────────────┐
+                        ▼                                     ▼
+        1. Zustand Synchronous Persist               2. Firebase Async onAuthStateChanged
+          (Đọc `cachedUser` từ LocalStorage            (Khởi tạo kết nối IndexedDB ngầm
+              ngay tại 0ms đồng bộ)                        trong khoảng 300ms)
+                        │                                     │
+                        ▼                                     ▼
+             currentUser = user || cachedUser         Cập nhật User mới nhất từ Google
+                        │                                     │
+                        ▼                                     ▼
+         ┌─────────────────────────────┐           isAuthReady = true
+         │ NAVBAR RENDER NGAY 0ms:     │           (Khớp 100% Token bảo mật)
+         │  [Avatar] Tài Phan Văn      │
+         │  (Không một giây chập chờn!)│
+         └─────────────────────────────┘
+```
+
+#### 1. Lớp 1: Lưu trữ Snapshot Đồng Bộ (`cachedUser`)
+- Trong [src/store/useAuthStore.ts](file:///d:/SelfLearning/AIRiser2026/MediClear/src/store/useAuthStore.ts), định nghĩa `cachedUser`: `{ uid, displayName, email, photoURL }`.
+- Cấu hình Zustand `persist` lưu `cachedUser` vào `localStorage`.
+- Khi F5, Zustand khôi phục dữ liệu này **đồng bộ ngay tại 0ms**:
+  ```ts
+  const currentUser = user || cachedUser;
+  ```
+- Nhờ đó, Navbar hiển thị Avatar và Tên ngay trong khung hình đầu tiên, không có độ trễ!
+
+#### 2. Lớp 2: Cổng Trạng Thái Khởi Tạo (`isAuthReady`) & Skeleton Placeholder
+- Nếu người dùng thực sự **Chưa từng đăng nhập** (hoặc vừa Clear Cache): `cachedUser` là `null` và `isAuthReady` là `false`.
+- Thay vì vội vàng hiện nút "Đăng nhập", Header hiển thị một khối **Skeleton Placeholder mờ (`animate-pulse`)**:
+  ```tsx
+  {!isAuthReady ? (
+    <div className="w-20 h-7 rounded-full bg-stone-200/60 animate-pulse"></div>
+  ) : (
+    <button onClick={handleLogin}>Đăng nhập</button>
+  )}
+  ```
+- Nút "Đăng nhập" chỉ hiển thị khi `isAuthReady === true` và `currentUser === null`.
+
+#### 3. Xử lý Đăng xuất An toàn:
+- Khi người dùng bấm **Đăng xuất (`logoutApi`)**, hàm `setUser(null)` sẽ đồng thời xóa sạch `user = null`, `cachedUser = null` và `cachedAccessToken = null`, đảm bảo không lưu thông tin dư thừa.
