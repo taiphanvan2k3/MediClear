@@ -21,6 +21,7 @@ import { MedsTab } from "./components/MedsTab";
 import { Navbar } from "./components/Navbar";
 import { ProfileTab } from "./components/ProfileTab";
 import { RecordsTab } from "./components/RecordsTab";
+import { PwaGuideModal } from "./components/PwaGuideModal";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -32,6 +33,7 @@ export default function App() {
   const setActiveTab = useUIStore((state) => state.setActiveTab);
   const setAlertMessage = useUIStore((state) => state.setAlertMessage);
   const setDeferredInstallPrompt = useUIStore((state) => state.setDeferredInstallPrompt);
+  const isAppInstalled = useUIStore((state) => state.isAppInstalled);
   const setIsAppInstalled = useUIStore((state) => state.setIsAppInstalled);
 
   const setUser = useAuthStore((state) => state.setUser);
@@ -39,7 +41,8 @@ export default function App() {
   const setUserProfile = useAuthStore((state) => state.setUserProfile);
 
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
 
   // Check if app is already running in standalone mode (installed PWA)
   useEffect(() => {
@@ -103,14 +106,21 @@ export default function App() {
     }
   }, [userProfile.emergencyPhone, userProfile.emergencyName, setActiveTab, setAlertMessage]);
 
-  // 3. Listen for PWA Install Prompt (beforeinstallprompt)
+  // 3. Listen for PWA Install Prompt (beforeinstallprompt) or retrieve early prompt
   useEffect(() => {
+    // Check if early prompt was captured before React mounted
+    if ((window as any).__deferredPrompt) {
+      const promptEvent = (window as any).__deferredPrompt as BeforeInstallPromptEvent;
+      setInstallPrompt(promptEvent);
+      setDeferredInstallPrompt(promptEvent);
+    }
+
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
+      (window as any).__deferredPrompt = promptEvent;
       setInstallPrompt(promptEvent);
       setDeferredInstallPrompt(promptEvent);
-      setShowInstallBanner(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
@@ -118,16 +128,29 @@ export default function App() {
   }, [setDeferredInstallPrompt]);
 
   const handleInstallPWA = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === "accepted") {
-      setShowInstallBanner(false);
-      setIsAppInstalled(true);
+    const activePrompt = installPrompt || ((window as any).__deferredPrompt as BeforeInstallPromptEvent | undefined);
+    if (activePrompt) {
+      try {
+        await activePrompt.prompt();
+        const { outcome } = await activePrompt.userChoice;
+        if (outcome === "accepted") {
+          setIsDismissed(true);
+          setIsAppInstalled(true);
+        }
+        setInstallPrompt(null);
+        setDeferredInstallPrompt(null);
+        (window as any).__deferredPrompt = null;
+        return;
+      } catch (err) {
+        console.warn("Lỗi khi mở prompt cài đặt PWA:", err);
+      }
     }
-    setInstallPrompt(null);
-    setDeferredInstallPrompt(null);
+
+    // Fallback: Open Guide Modal for iOS Safari / manual desktop install
+    setIsGuideModalOpen(true);
   };
+
+  const showInstallBanner = !isAppInstalled && !isDismissed;
 
   return (
     <div className="min-h-screen bg-stone-100 flex justify-center selection:bg-[#B85B43]/20">
@@ -159,7 +182,7 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowInstallBanner(false)}
+                    onClick={() => setIsDismissed(true)}
                     className="p-1 text-white/80 hover:text-white rounded-md cursor-pointer hover:bg-white/10 transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -187,6 +210,7 @@ export default function App() {
         {/* Global Overlays & Modals */}
         <LightboxModal />
         <AlertDialogs />
+        <PwaGuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} />
       </div>
     </div>
   );

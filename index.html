@@ -13,6 +13,13 @@
   <meta name="apple-mobile-web-app-title" content="MediClear" />
   <meta name="description" content="Trợ lý Y tế AI đọc hiểu đơn thuốc, tra cứu dược học, xuất phiếu mua thuốc và tái khám thông minh." />
   <title>MediClear - Trợ lý Y tế AI Thông minh</title>
+  <script>
+    // Capture early beforeinstallprompt event before React mounts
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.__deferredPrompt = e;
+    });
+  </script>
 </head>
 
 <body>
