@@ -11,7 +11,7 @@
 3. [Mô hình Clean Layered Architecture cho Node.js / Express](#3-mô-hình-clean-layered-architecture-cho-nodejs--express)
 4. [Cơ chế Quota Google Search Grounding giữa các dòng model Gemini (2.5 Flash vs 3.x Flash-Lite)](#4-cơ-chế-quota-google-search-grounding-giữa-các-dòng-model-gemini-25-flash-vs-3x-flash-lite)
 5. [Pipeline 2 Bước (Two-Stage Pipeline) Khi Tra Cứu Bằng Ảnh Chụp Nhãn Thuốc](#5-pipeline-2-bước-two-stage-pipeline-khi-tra-cứu-bằng-ảnh-chụp-nhãn-thuốc)
-6. [Cơ chế PWA, Google WebAPK & Phím tắt SOS (App Shortcuts) trên Android vs iOS](#6-cơ-chế-pwa-google-webapk--phím-tắt-sos-app-shortcuts-trên-android-vs-ios)
+6. [Cơ chế PWA, Google WebAPK, Phím tắt SOS & Kiểm tra Trạng thái Cài đặt (Dẫn nguồn chuẩn Google/W3C)](#6-cơ-chế-pwa-google-webapk-phím-tắt-sos--kiểm-tra-trạng-thái-cài-đặt-dẫn-nguồn-chuẩn-googlew3c)
 7. [Tránh lỗi Runtime "Illegal Constructor" do Browser Globals trong React TSX](#7-tránh-lỗi-runtime-illegal-constructor-do-browser-globals-trong-react-tsx)
 8. [Nguyên tắc thiết kế Inset Grouped List chuẩn Clinical Modern Wellness](#8-nguyên-tắc-thiết-kế-inset-grouped-list-chuẩn-clinical-modern-wellness)
 
@@ -179,19 +179,26 @@ MediClear sử dụng quy trình 2 bước tự động trong [`server/services/
 
 ---
 
-## 6. Cơ chế PWA, Google WebAPK & Phím tắt SOS (App Shortcuts) trên Android vs iOS
+## 6. Cơ chế PWA, Google WebAPK, Phím tắt SOS & Kiểm tra Trạng thái Cài đặt (Dẫn nguồn chuẩn Google/W3C)
 
-### ❓ Hiện tượng: Tại sao khi vào bằng HTTP IP (`http://10.x.x.x:3000`) chỉ hiện lối tắt Chrome thường, không có phím tắt SOS?
+### 📚 Tài liệu & Tiêu chuẩn kỹ thuật tham chiếu:
+- **Google Developers (web.dev)**: [Customize PWA Installation](https://web.dev/articles/customize-install)
+- **Google Developers (web.dev)**: [Get Installed Related Apps API](https://web.dev/articles/get-installed-related-apps)
+- **MDN Web Docs**: [Navigator.getInstalledRelatedApps()](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/getInstalledRelatedApps)
+- **W3C Web App Manifest**: [App Shortcuts Specification](https://w3c.github.io/manifest-app-info/#shortcuts-member)
 
-### 🔍 Bản chất kỹ thuật của Google WebAPK trên Android:
-1. **Yêu cầu kết nối an toàn (Secure Origin / HTTPS)**:
-   - Google Chrome trên Android yêu cầu trang web **bắt buộc phải có HTTPS** (hoặc `localhost`) để kích hoạt cơ chế biên dịch **WebAPK**.
-   - Khi chạy trên HTTP không có chứng chỉ bảo mật (ví dụ IP mạng LAN), Chrome tự động hạ cấp từ *Ứng dụng WebAPK* xuống thành *Lối tắt Bookmark của Chrome (Web Bookmark Shortcut)*.
-   - Đối với Lối tắt Bookmark thường, hệ điều hành Android không đăng ký bộ lọc Intent, nên khi đè giữ icon chỉ hiện nút *"Xóa lối tắt"*.
+---
 
-2. **Khi có HTTPS (hoặc bật cờ `chrome://flags` cho IP LAN)**:
-   - Chrome gửi cấu hình `manifest.json` lên **Google WebAPK Minting Service**.
-   - Google tự động đóng gói ứng dụng thành **gói APK ảo** cài trực tiếp vào Android Launcher.
+### ❓ Câu hỏi 1: Tại sao chạy trên HTTP IP (`http://10.x.x.x:3000`) chỉ là Lối tắt Chrome thường, còn lên HTTPS lại thành App WebAPK thật?
+
+#### 🔍 Cơ chế của Google WebAPK Minting Service:
+1. **Yêu cầu Secure Origin (HTTPS)**:
+   - Google Chromium trên Android bắt buộc trang web phải được phục vụ qua **HTTPS** (hoặc `localhost`) thì mới kích hoạt cơ chế biên dịch **WebAPK**.
+   - Nếu chạy qua HTTP không bảo mật (ví dụ IP mạng LAN), Chrome tự động hạ cấp từ *Ứng dụng WebAPK* xuống thành *Lối tắt Bookmark của Chrome (Web Bookmark Shortcut)*.
+   - Đối với Lối tắt Bookmark thường, Android không tạo gói `.apk` ảo và không đăng ký Intent với Android OS, nên đè giữ icon chỉ hiện *"Xóa lối tắt"*.
+2. **Khi chạy trên HTTPS**:
+   - Chrome gửi `manifest.json` về **Google WebAPK Minting Service**.
+   - Google tự động đóng gói ứng dụng thành **gói WebAPK ảo** cài thẳng vào Android Launcher.
    - Các phím tắt trong mảng `shortcuts` của `manifest.json` được Android đăng ký vào menu **Long-Press (Đè giữ)** của hệ thống:
      - 🚨 **"Gọi Người Thân SOS"** (`/?action=quick_sos`)
      - 📷 **"Quét Đơn Thuốc Mới"** (`/?action=scan`)
@@ -212,6 +219,29 @@ MediClear sử dụng quy trình 2 bước tự động trong [`server/services/
                                                              │ tức thì trong 0.5s!    │
                                                              └────────────────────────┘
 ```
+
+---
+
+### ❓ Câu hỏi 2: Khi người dùng mở tab Web trong Chrome, làm sao Chrome biết được người dùng đã cài App hay đã gỡ App khỏi máy?
+
+Theo đặc tả của **Google Chromium Engine**:
+
+1. **Khi WebAPK ĐANG CÀI trên máy**:
+   - Khi người dùng truy cập trang web trong tab Chrome, engine của Chrome sẽ truy vấn **Android PackageManager** của thiết bị.
+   - Thấy WebAPK tương ứng với `manifest.id` đã tồn tại trên máy, Chrome **tự động triệt tiêu (suppress), không phát sự kiện `beforeinstallprompt`** vào trang web nữa để tránh hiển thị nút cài đặt dư thừa.
+2. **Khi người dùng ĐÃ GỠ / XÓA WebAPK khỏi máy**:
+   - Lần tiếp theo người dùng mở trang web trong tab Chrome, Chrome kiểm tra Android PackageManager thấy gói WebAPK **không còn tồn tại**.
+   - Vì trang web đáp ứng đầy đủ tiêu chí PWA (HTTPS, Manifest, Service Worker), **Chrome lập tức phát sự kiện `beforeinstallprompt`**.
+   - Ứng dụng web bắt sự kiện này và **tự động hiển thị lại thanh Banner Cài đặt trên Header**.
+3. **API chính thức `navigator.getInstalledRelatedApps()`**:
+   - Trang web có thể gọi trực tiếp hàm này:
+     ```ts
+     const relatedApps = await navigator.getInstalledRelatedApps();
+     // relatedApps.length > 0 -> App đang cài trên máy
+     // relatedApps.length === 0 -> App chưa cài hoặc đã bị người dùng xóa
+     ```
+
+---
 
 ### ⚙️ Các yêu cầu bắt buộc trong `public/manifest.json` để Google WebAPK chấp nhận:
 - Có `"scope": "/"` và `"start_url": "/"`.
@@ -255,6 +285,6 @@ Khi thiết kế ứng dụng cho điện thoại, nếu mỗi tùy chọn (Cài
 1. **Phân nhóm thành 3 tầng rõ ràng**:
    - **Hero Profile Card**: Chứa thông tin nhận diện cốt lõi (Avatar, Tên, Email, Xưng hô AI).
    - **Health Card**: Chứa dữ liệu y tế (Nhãn bệnh nền đang theo dõi).
-   - **Grouped Settings Card**: Gộp toàn bộ các tùy chọn hệ thống (SOS, Cài đặt PWA, Cỡ chữ) vào **1 thẻ duy nhất** có đường phân cách mỏng (`divide-stone-100`).
+   - **Grouped Settings Card**: Gộp toàn bộ các tùy chọn hệ thống (SOS, Cỡ chữ) vào **1 thẻ duy nhất** có đường phân cách mỏng (`divide-stone-100`).
 2. **Nguyên tắc Render Modal dùng chung**:
-   - Tất cả các Modal hướng dẫn / chỉnh sửa (như PWA Guide Modal, Settings Modal) phải được render ở phạm vi dùng chung của component (bên ngoài các lệnh `if (!user) return ...`), đảm bảo modal hoạt động mượt mà ở cả trạng thái đã đăng nhập và chưa đăng nhập.
+   - Tất cả các Modal hướng dẫn / chỉnh sửa (như Settings Modal) phải được render ở phạm vi dùng chung của component (bên ngoài các lệnh `if (!user) return ...`), đảm bảo modal hoạt động mượt mà ở cả trạng thái đã đăng nhập và chưa đăng nhập.

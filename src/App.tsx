@@ -3,23 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Download, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { UserProfile } from "./types";
 
-import { useUIStore, useAuthStore } from "./store";
+import { useAuthStore, useUIStore } from "./store";
 
-import { Navbar } from "./components/Navbar";
-import { BottomNav } from "./components/BottomNav";
-import { LightboxModal } from "./components/LightboxModal";
 import { AlertDialogs } from "./components/AlertDialogs";
-import { RecordsTab } from "./components/RecordsTab";
-import { MedsTab } from "./components/MedsTab";
+import { BottomNav } from "./components/BottomNav";
 import { HistoryTab } from "./components/HistoryTab";
+import { LightboxModal } from "./components/LightboxModal";
+import { MedsTab } from "./components/MedsTab";
+import { Navbar } from "./components/Navbar";
 import { ProfileTab } from "./components/ProfileTab";
+import { RecordsTab } from "./components/RecordsTab";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
