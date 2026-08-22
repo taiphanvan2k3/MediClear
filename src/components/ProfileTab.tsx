@@ -2,10 +2,8 @@ import {
   Check,
   ChevronRight,
   Cloud,
-  Download,
   Edit3,
   HeartPulse,
-  Info,
   Loader2,
   Lock,
   LogIn,
@@ -14,9 +12,7 @@ import {
   Plus,
   Save,
   Settings,
-  Share,
   ShieldCheck,
-  Smartphone,
   Sparkles,
   Type,
   User as UserIcon,
@@ -44,13 +40,8 @@ export const ProfileTab: React.FC = () => {
   // UI Store
   const isLargeText = useUIStore((state) => state.isLargeText);
   const onToggleLargeText = useUIStore((state) => state.toggleLargeText);
-  const deferredInstallPrompt = useUIStore((state) => state.deferredInstallPrompt);
-  const setDeferredInstallPrompt = useUIStore((state) => state.setDeferredInstallPrompt);
-  const isAppInstalled = useUIStore((state) => state.isAppInstalled);
-  const setIsAppInstalled = useUIStore((state) => state.setIsAppInstalled);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [showPwaGuideModal, setShowPwaGuideModal] = useState(false);
 
   const uTitle = userProfile.userTitle || "Bác";
   const aiTitle = userProfile.aiTitle || "Cháu";
@@ -63,19 +54,6 @@ export const ProfileTab: React.FC = () => {
     setTimeout(() => {
       setIsSettingsModalOpen(false);
     }, 600);
-  };
-
-  const handleInstallClick = async () => {
-    if (deferredInstallPrompt) {
-      await deferredInstallPrompt.prompt();
-      const { outcome } = await deferredInstallPrompt.userChoice;
-      if (outcome === "accepted") {
-        setIsAppInstalled(true);
-      }
-      setDeferredInstallPrompt(null);
-    } else {
-      setShowPwaGuideModal(true);
-    }
   };
 
   return (
@@ -101,8 +79,8 @@ export const ProfileTab: React.FC = () => {
             <div className="space-y-1.5">
               <h3 className="text-lg font-extrabold text-stone-900">Yêu cầu đăng nhập tài khoản</h3>
               <p className="text-xs text-stone-600 font-medium leading-relaxed max-w-xs mx-auto">
-                Để đồng bộ hồ sơ bệnh lý, cài đặt xưng hô và quản lý sổ khám của gia đình lâu dài, vui lòng đăng nhập
-                tài khoản Google.
+                Để đồng bộ hồ sơ bệnh lý, cài đặt xưng hô và quản lý sổ khám của gia đình lâu dài, vui lòng đăng nhập tài
+                khoản Google.
               </p>
             </div>
 
@@ -140,44 +118,6 @@ export const ProfileTab: React.FC = () => {
             </span>
 
             <div className="bg-white border border-stone-200/90 rounded-3xl shadow-soft divide-y divide-stone-100 overflow-hidden">
-              {/* Cài đặt PWA */}
-              <div className="p-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3] flex items-center justify-center shrink-0">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-bold text-xs sm:text-sm text-stone-900 block truncate">
-                      Cài đặt MediClear
-                    </span>
-                    <span className="text-[11px] text-stone-500 font-medium block truncate">
-                      {isAppInstalled ? "Đã cài đặt trên máy" : "Ghim ra màn hình chính để mở nhanh"}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleInstallClick}
-                  className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-all active:scale-95 shrink-0 cursor-pointer flex items-center gap-1 ${
-                    isAppInstalled
-                      ? "bg-stone-100 text-stone-600 border border-stone-200"
-                      : "bg-[#B85B43] hover:bg-[#A34E37] text-white"
-                  }`}
-                >
-                  {isAppInstalled ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Đã cài</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Cài đặt</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
               {/* Cỡ chữ to */}
               <div className="p-3.5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -331,59 +271,28 @@ export const ProfileTab: React.FC = () => {
                 <ChevronRight className="w-4 h-4 text-stone-400 shrink-0" />
               </div>
 
-              {/* Row 2: Cài Đặt Ứng Dụng PWA */}
-              <div className="p-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[#FBF0EC] text-[#B85B43] border border-[#F4DCD3] flex items-center justify-center shrink-0">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="font-bold text-xs sm:text-sm text-stone-900 block truncate">
-                      Cài đặt MediClear
-                    </span>
-                    <span className="text-[11px] text-stone-500 font-medium block truncate">
-                      {isAppInstalled ? "Đã cài đặt trên máy" : "Ghim ra màn hình chính để mở nhanh"}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleInstallClick}
-                  className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-all active:scale-95 shrink-0 cursor-pointer flex items-center gap-1 ${
-                    isAppInstalled
-                      ? "bg-stone-100 text-stone-600 border border-stone-200"
-                      : "bg-[#B85B43] hover:bg-[#A34E37] text-white"
-                  }`}
-                >
-                  {isAppInstalled ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Đã cài</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Cài đặt</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Row 3: Cỡ Chữ To Dễ Đọc */}
+              {/* Row 2: Cỡ Chữ To Dễ Đọc */}
               <div className="p-3.5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-700 border border-stone-200 flex items-center justify-center shrink-0">
                     <Type className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <span className="font-bold text-xs sm:text-sm text-stone-900 block truncate">Cỡ chữ to dễ đọc</span>
+                    <span className="font-bold text-xs sm:text-sm text-stone-900 block truncate">
+                      Cỡ chữ to dễ đọc
+                    </span>
                     <span className="text-[11px] text-stone-500 font-medium block truncate">
                       Phóng to chữ cho người lớn tuổi
                     </span>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                  <input type="checkbox" checked={isLargeText} onChange={onToggleLargeText} className="sr-only peer" />
+                  <input
+                    type="checkbox"
+                    checked={isLargeText}
+                    onChange={onToggleLargeText}
+                    className="sr-only peer"
+                  />
                   <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B85B43]"></div>
                 </label>
               </div>
@@ -398,86 +307,7 @@ export const ProfileTab: React.FC = () => {
         </div>
       )}
 
-      {/* =================== SHARED MODALS (LUÔN RENDER DÙ ĐÃ ĐĂNG NHẬP HAY CHƯA) =================== */}
-      {/* MODAL HƯỚNG DẪN CÀI ĐẶT PWA LÊN MÀN HÌNH CHÍNH (IOS / ANDROID) */}
-      {showPwaGuideModal && (
-        <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-stone-100 animate-in zoom-in-95 duration-200 text-left">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-[#FBF0EC] text-[#B85B43] rounded-xl border border-[#F4DCD3]">
-                  <Smartphone className="w-5 h-5 text-[#B85B43]" />
-                </div>
-                <h3 className="font-extrabold text-base text-stone-900">Cách cài đặt MediClear</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPwaGuideModal(false)}
-                className="p-1 text-stone-400 hover:text-stone-700 rounded-full cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs text-stone-700 leading-relaxed font-medium">
-              {/* iPhone / Safari */}
-              <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-                <span className="font-extrabold text-stone-900 flex items-center gap-1.5">
-                  🍎 Dành cho iPhone / iPad (Safari):
-                </span>
-                <ol className="list-decimal pl-4 space-y-1">
-                  <li>
-                    Chạm biểu tượng{" "}
-                    <strong>
-                      Chia sẻ <Share className="w-3.5 h-3.5 inline text-sky-600" />
-                    </strong>{" "}
-                    ở thanh dưới trình duyệt Safari.
-                  </li>
-                  <li>
-                    Cuộn xuống và chọn <strong>"Thêm vào Màn hình chính" (Add to Home Screen) ➕</strong>.
-                  </li>
-                  <li>
-                    Bấm <strong>Thêm</strong> ở góc trên bên phải.
-                  </li>
-                </ol>
-              </div>
-
-              {/* Android / Chrome */}
-              <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-                <span className="font-extrabold text-stone-900 flex items-center gap-1.5">
-                  🤖 Dành cho Android (Chrome / Cốc Cốc):
-                </span>
-                <ol className="list-decimal pl-4 space-y-1">
-                  <li>
-                    Chạm biểu tượng <strong>Menu 3 chấm ⋮</strong> ở góc trên bên phải.
-                  </li>
-                  <li>
-                    Chọn <strong>"Cài đặt ứng dụng"</strong> hoặc <strong>"Thêm vào màn hình chính"</strong>.
-                  </li>
-                </ol>
-              </div>
-
-              <div className="p-2.5 bg-[#FBF0EC] border border-[#F4DCD3] rounded-xl flex items-start gap-2 text-stone-800">
-                <Info className="w-4 h-4 text-[#B85B43] shrink-0 mt-0.5" />
-                <span className="text-[11px]">
-                  Sau khi cài đặt, bạn có thể <strong>đè giữ icon MediClear</strong> ngoài màn hình chính để gọi SOS
-                  khẩn cấp 1-touch!
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowPwaGuideModal(false)}
-              className="w-full py-2.5 bg-[#B85B43] hover:bg-[#A34E37] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer"
-            >
-              Đã hiểu
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CÀI ĐẶT & CHỈNH SỬA THÔNG TIN CHI TIẾT */}
+      {/* =================== MODAL CÀI ĐẶT & CHỈNH SỬA THÔNG TIN CHI TIẾT =================== */}
       {isSettingsModalOpen && (
         <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-100 overflow-hidden animate-in zoom-in-95 duration-200">
