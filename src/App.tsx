@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { AnimatePresence, motion } from "motion/react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Download, X } from "lucide-react";
@@ -131,31 +132,43 @@ export default function App() {
   return (
     <div className="min-h-screen bg-stone-100 flex justify-center selection:bg-[#B85B43]/20">
       <div className="w-full max-w-md min-h-screen bg-[#FAF6F0] flex flex-col relative shadow-xl border-x border-stone-200/60 pb-20">
-        {/* PWA Install Banner */}
-        {showInstallBanner && (
-          <div className="bg-[#B85B43] text-white px-3.5 py-2.5 flex items-center justify-between text-xs font-semibold shadow-md animate-in slide-in-from-top duration-300">
-            <div className="flex items-center gap-2 min-w-0 pr-2">
-              <Download className="w-4 h-4 shrink-0 text-white animate-bounce" />
-              <span className="truncate">Cài đặt ứng dụng MediClear để mở nhanh & gọi SOS</span>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={handleInstallPWA}
-                className="bg-white text-[#B85B43] hover:bg-stone-100 px-2.5 py-1 rounded-lg font-extrabold text-[11px] shadow-2xs transition-all active:scale-95 cursor-pointer"
-              >
-                Cài đặt
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowInstallBanner(false)}
-                className="p-1 text-white/80 hover:text-white rounded-md cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* PWA Install Banner with Smooth Slide-down Accordion Animation */}
+        <AnimatePresence>
+          {showInstallBanner && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden bg-[#B85B43] text-white shadow-md z-40 border-b border-[#A34E37]"
+            >
+              <div className="px-3.5 py-2.5 flex items-center justify-between text-xs font-semibold">
+                <div className="flex items-center gap-2 min-w-0 pr-2">
+                  <div className="p-1 bg-white/20 rounded-lg shrink-0">
+                    <Download className="w-3.5 h-3.5 text-white animate-bounce" />
+                  </div>
+                  <span className="truncate">Cài đặt ứng dụng MediClear để mở nhanh & gọi SOS</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleInstallPWA}
+                    className="bg-white text-[#B85B43] hover:bg-stone-100 px-2.5 py-1 rounded-lg font-extrabold text-[11px] shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  >
+                    Cài đặt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowInstallBanner(false)}
+                    className="p-1 text-white/80 hover:text-white rounded-md cursor-pointer hover:bg-white/10 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Sticky Top Header */}
         <Navbar />
